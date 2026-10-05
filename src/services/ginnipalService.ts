@@ -168,7 +168,7 @@ async function loginAndInitSubForm(
   email: string,
   password: string,
   jar: CookieJar
-): Promise<{ subFormKey: string; subInitControls: any }> {
+): Promise<{ subFormKey: string; initControls: any; subInitControls: any }> {
   const cleanEmail = email.trim();
   const cleanPassword = password.trim();
 
@@ -259,6 +259,15 @@ async function loginAndInitSubForm(
   }
   const subFormKey = subFormMatch[1];
 
+  let initControls: any = {};
+  try {
+    const cleanInitJson = step4.text.replace(/^var initialData\s*=\s*/, '').replace(/;$/, '');
+    const parsedInit = JSON.parse(cleanInitJson);
+    initControls = parsedInit.actions?.[0]?.controls || {};
+  } catch (e) {
+    console.warn('[GinnipalService] Notice parsing initControls:', e);
+  }
+
   // 5. GET SubForm Initialize
   const step5 = await ginnipalFetch(
     `https://ginnipal.it/CusCosenza/ExtMain.Ajax.ashx/Initialize?FormKey=${subFormKey}`,
@@ -275,7 +284,7 @@ async function loginAndInitSubForm(
     console.warn('[GinnipalService] Notice parsing subInitControls:', e);
   }
 
-  return { subFormKey, subInitControls };
+  return { subFormKey, initControls, subInitControls };
 }
 
 /**
@@ -291,10 +300,14 @@ async function fetchLiveGinnipalDirect(
   }
 
   const jar = existingJar || { list: [] };
-  const { subInitControls } = await loginAndInitSubForm(email, password, jar);
+  const { initControls, subInitControls } = await loginAndInitSubForm(email, password, jar);
 
-  const parsedName = subInitControls.mp_stPersona?.html || 'Tesserato CUS';
-  const parsedTessera = subInitControls.mp_stNumeroTessera?.html || '';
+  const rawName = initControls.mp_stPersona?.html || subInitControls.mp_stPersona?.html || '';
+  const cleanName = rawName ? decodeHtml(rawName).replace(/<[^>]*>/g, '').trim() : '';
+  const parsedName = cleanName || 'Tesserato CUS';
+
+  const rawTessera = initControls.mp_stNumeroTessera?.html || subInitControls.mp_stNumeroTessera?.html || '';
+  const parsedTessera = rawTessera ? decodeHtml(rawTessera).replace(/<[^>]*>/g, '').trim() : '';
 
   const rawIscrizioni = decodeHtml(subInitControls.stIscrizioni?.html || '');
   const totMatch = rawIscrizioni.match(/Totale utilizzi:\s*(\d+)/i);

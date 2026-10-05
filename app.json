@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "it.cuscosenza.app",
+      "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#0083C4",
         "foregroundImage": "./assets/images/android-icon-foreground.png"

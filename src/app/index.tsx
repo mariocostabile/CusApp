@@ -398,6 +398,7 @@ export default function App() {
   const [crowdWeeklyData, setCrowdWeeklyData] = useState<Record<string, CrowdDayData>>(WEEKLY_CROWD_DATA);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const crowdTabsRef = useRef<ScrollView>(null);
+  const loginScrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     if (currentDayOfWeek === 0 || currentDayOfWeek === 6 || currentDayOfWeek === 5) {
@@ -753,72 +754,80 @@ export default function App() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <ScrollView
+            ref={loginScrollRef}
             contentContainerStyle={styles.loginScrollContainer}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-            bounces={false}
+            bounces={true}
           >
-            <View style={styles.brandBox}>
-              <Text style={styles.brandTitle}>CusApp</Text>
-              <Text style={styles.brandSubtitle}>CUS Cosenza • Portale Tesserati</Text>
-            </View>
-
-            <View style={styles.loginCard}>
-              <Text style={styles.formTitle}>Accedi al tuo profilo</Text>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Email</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="nome@email.it"
-                  placeholderTextColor="#94A3B8"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  spellCheck={false}
-                  autoComplete="email"
-                  textContentType="emailAddress"
-                  importantForAutofill="yes"
-                />
+            <View style={styles.loginInner}>
+              <View style={styles.brandBox}>
+                <Text style={styles.brandTitle}>CusApp</Text>
+                <Text style={styles.brandSubtitle}>CUS Cosenza • Portale Tesserati</Text>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Password</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="••••••••••••"
-                  placeholderTextColor="#94A3B8"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  spellCheck={false}
-                  autoComplete="current-password"
-                  textContentType="password"
-                  importantForAutofill="yes"
-                />
+              <View style={styles.loginCard}>
+                <Text style={styles.formTitle}>Accedi al tuo profilo</Text>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Email</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="nome@email.it"
+                    placeholderTextColor="#94A3B8"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    autoComplete="email"
+                    textContentType="emailAddress"
+                    importantForAutofill="yes"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Password</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="••••••••••••"
+                    placeholderTextColor="#94A3B8"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    autoComplete="current-password"
+                    textContentType="password"
+                    importantForAutofill="yes"
+                    onFocus={() => {
+                      setTimeout(() => {
+                        loginScrollRef.current?.scrollToEnd({ animated: true });
+                      }, 180);
+                    }}
+                  />
+                </View>
+
+                {error ? <Text style={styles.loginError}>{error}</Text> : null}
+
+                <TouchableOpacity
+                  style={styles.primaryButton}
+                  onPress={handleLogin}
+                  disabled={isLoading}
+                  activeOpacity={0.85}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>ACCEDI</Text>
+                  )}
+                </TouchableOpacity>
               </View>
 
-              {error ? <Text style={styles.loginError}>{error}</Text> : null}
-
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={handleLogin}
-                disabled={isLoading}
-                activeOpacity={0.85}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>ACCEDI</Text>
-                )}
-              </TouchableOpacity>
+              <Text style={styles.footerCopy}>CusApp • CUS Cosenza</Text>
             </View>
-
-            <Text style={styles.footerCopy}>CusApp • CUS Cosenza</Text>
           </ScrollView>
         </KeyboardAvoidingView>
 
@@ -1344,10 +1353,12 @@ export default function App() {
         visible={isBookingModalVisible}
         transparent={true}
         animationType="slide"
+        statusBarTranslucent={true}
+        navigationBarTranslucent={true}
         onRequestClose={() => setIsBookingModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+          <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
             {/* Modal Header */}
             <View style={styles.modalHeader}>
               <View>
@@ -1919,6 +1930,8 @@ export default function App() {
         visible={confirmCancelModalData !== null}
         transparent
         animationType="fade"
+        statusBarTranslucent={true}
+        navigationBarTranslucent={true}
         onRequestClose={() => setConfirmCancelModalData(null)}
       >
         <View style={styles.customModalBackdrop}>
@@ -2987,14 +3000,17 @@ const styles = StyleSheet.create({
   },
   loginScrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingTop: 16,
+    paddingBottom: 80,
   },
-  loginContainer: {
+  loginInner: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    minHeight: 520,
   },
   brandBox: {
     alignItems: 'center',
