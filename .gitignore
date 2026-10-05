@@ -1,0 +1,130 @@
+# ==============================================================================
+# Git Ignore - CusApp (Expo / React Native / TypeScript)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Dipendenze (Dependencies)
+# ------------------------------------------------------------------------------
+node_modules/
+.pnp/
+.pnp.js
+
+# ------------------------------------------------------------------------------
+# 2. Expo & EAS Application Platform
+# ------------------------------------------------------------------------------
+.expo/
+.eas/
+dist/
+web-build/
+expo-env.d.ts
+
+# ------------------------------------------------------------------------------
+# 3. Variabili d'Ambiente & Segreti (Environment Variables & Secrets)
+# Non tracciare mai chiavi API, token o credenziali di produzione
+# ------------------------------------------------------------------------------
+.env
+.env.*
+*.env
+!.env.example
+
+# ------------------------------------------------------------------------------
+# 4. Cartelle Native Generate (Continuous Native Generation - CNG)
+# Rigenerate dinamicamente da Expo Prebuild via app.json
+# ------------------------------------------------------------------------------
+/ios/
+/android/
+.kotlin/
+
+# ------------------------------------------------------------------------------
+# 5. Build, Binari & Pacchetti Distribuzione (Build Artifacts)
+# ------------------------------------------------------------------------------
+*.apk
+*.aab
+dist-apk/
+*.ipa
+*.app
+*.dSYM/
+*.orig.*
+
+# ------------------------------------------------------------------------------
+# 6. Certificati di Firma & Chiavi di Sicurezza (Signing Keys & Certificates)
+# ------------------------------------------------------------------------------
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+*.cer
+*.der
+
+# ------------------------------------------------------------------------------
+# 7. Metro Bundler & Cache di Compilazione
+# ------------------------------------------------------------------------------
+.metro-health-check*
+metro-cache/
+.cache/
+.turbo/
+.parcel-cache/
+
+# ------------------------------------------------------------------------------
+# 8. Log di Sistema & Debugging (Logs)
+# ------------------------------------------------------------------------------
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ------------------------------------------------------------------------------
+# 9. Test Coverage & Qualità del Codice (Testing & Linting)
+# ------------------------------------------------------------------------------
+coverage/
+*.lcov
+.nyc_output/
+.eslintcache
+
+# ------------------------------------------------------------------------------
+# 10. TypeScript
+# ------------------------------------------------------------------------------
+*.tsbuildinfo
+
+# ------------------------------------------------------------------------------
+# 11. File di Sistema (Operating System Junk)
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# ------------------------------------------------------------------------------
+# 12. IDE & Editor di Codice (IDEs & Editors)
+# ------------------------------------------------------------------------------
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# Visual Studio Code & IDE
+.vscode/
+
+# Tool AI & Local agent instructions
+.claude/
+CLAUDE.md
+AGENTS.md

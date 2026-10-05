@@ -1,0 +1,661 @@
+{
+  "lastUpdated": "2026-10-04T00:14:59.130Z",
+  "placeName": "CUS Unical - Centro Universitario Sportivo Cosenza",
+  "googleMapsUrl": "https://www.google.com/maps/place/CUS+Unical/@39.3576258,16.2169142,17z?hl=it",
+  "isLiveActive": false,
+  "currentPercent": 25,
+  "currentTypical": 25,
+  "comparisonStatus": "Consueto",
+  "weeklyData": {
+    "lunedi": {
+      "name": "Lunedì",
+      "short": "Lun",
+      "isClosed": false,
+      "hours": [
+        {
+          "hour": 10,
+          "label": "10:00",
+          "percent": 25,
+          "typical": 25,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Apertura tranquilla, macchinari tutti liberi."
+        },
+        {
+          "hour": 11,
+          "label": "11:00",
+          "percent": 25,
+          "typical": 25,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Flusso ridotto, ottima disponibilità."
+        },
+        {
+          "hour": 12,
+          "label": "12:00",
+          "percent": 20,
+          "typical": 20,
+          "level": "Molto Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Pausa pranzo, sala poco frequentata."
+        },
+        {
+          "hour": 13,
+          "label": "13:00",
+          "percent": 18,
+          "typical": 18,
+          "level": "Molto Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Minima affluenza della giornata."
+        },
+        {
+          "hour": 14,
+          "label": "14:00",
+          "percent": 20,
+          "typical": 20,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Inizio pomeriggio con poche presenze."
+        },
+        {
+          "hour": 15,
+          "label": "15:00",
+          "percent": 25,
+          "typical": 25,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Affluenza leggera."
+        },
+        {
+          "hour": 16,
+          "label": "16:00",
+          "percent": 30,
+          "typical": 30,
+          "level": "Moderato",
+          "color": "#38BDF8",
+          "comparisonStatus": "Consueto",
+          "description": "Primi arrivi post-lezioni universitarie."
+        },
+        {
+          "hour": 17,
+          "label": "17:00",
+          "percent": 50,
+          "typical": 50,
+          "level": "Moderato",
+          "color": "#F59E0B",
+          "comparisonStatus": "Consueto",
+          "description": "Afflusso in crescita per i turni pomeridiani."
+        },
+        {
+          "hour": 18,
+          "label": "18:00",
+          "percent": 75,
+          "typical": 75,
+          "level": "Affollato",
+          "color": "#F97316",
+          "comparisonStatus": "Consueto",
+          "description": "Fascia di alta affluenza."
+        },
+        {
+          "hour": 19,
+          "label": "19:00",
+          "percent": 80,
+          "typical": 80,
+          "level": "Affollato",
+          "color": "#EF4444",
+          "comparisonStatus": "Consueto",
+          "description": "Turno molto richiesto dagli studenti."
+        },
+        {
+          "hour": 20,
+          "label": "20:00",
+          "percent": 85,
+          "typical": 85,
+          "level": "Picco Massimo",
+          "color": "#EF4444",
+          "comparisonStatus": "Consueto",
+          "description": "Picco massimo del lunedì, alternarsi alle panche."
+        },
+        {
+          "hour": 21,
+          "label": "21:00",
+          "percent": 60,
+          "typical": 60,
+          "level": "In Calo",
+          "color": "#F59E0B",
+          "comparisonStatus": "Consueto",
+          "description": "Ultimo turno in diminuzione verso la chiusura."
+        }
+      ]
+    },
+    "martedi": {
+      "name": "Martedì",
+      "short": "Mar",
+      "isClosed": false,
+      "hours": [
+        {
+          "hour": 10,
+          "label": "10:00",
+          "percent": 20,
+          "typical": 20,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Mattinata sgombra e silenziosa."
+        },
+        {
+          "hour": 11,
+          "label": "11:00",
+          "percent": 22,
+          "typical": 22,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Disponibilità completa di tutti i carichi."
+        },
+        {
+          "hour": 12,
+          "label": "12:00",
+          "percent": 25,
+          "typical": 25,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Presenze contenute."
+        },
+        {
+          "hour": 13,
+          "label": "13:00",
+          "percent": 25,
+          "typical": 25,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Pausa pranzo scorrevole."
+        },
+        {
+          "hour": 14,
+          "label": "14:00",
+          "percent": 25,
+          "typical": 25,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Atmosfera rilassata."
+        },
+        {
+          "hour": 15,
+          "label": "15:00",
+          "percent": 35,
+          "typical": 35,
+          "level": "Moderato",
+          "color": "#38BDF8",
+          "comparisonStatus": "Consueto",
+          "description": "Inizio progressivo del turno pomeridiano."
+        },
+        {
+          "hour": 16,
+          "label": "16:00",
+          "percent": 45,
+          "typical": 45,
+          "level": "Moderato",
+          "color": "#F59E0B",
+          "comparisonStatus": "Consueto",
+          "description": "Affluenza media."
+        },
+        {
+          "hour": 17,
+          "label": "17:00",
+          "percent": 65,
+          "typical": 65,
+          "level": "Affollato",
+          "color": "#F97316",
+          "comparisonStatus": "Consueto",
+          "description": "Sala viva, possibili brevi attese ai manubri."
+        },
+        {
+          "hour": 18,
+          "label": "18:00",
+          "percent": 90,
+          "typical": 90,
+          "level": "Picco Massimo",
+          "color": "#EF4444",
+          "comparisonStatus": "Consueto",
+          "description": "Orario di punta di martedì, elevata presenza."
+        },
+        {
+          "hour": 19,
+          "label": "19:00",
+          "percent": 85,
+          "typical": 85,
+          "level": "Molto Affollato",
+          "color": "#EF4444",
+          "comparisonStatus": "Consueto",
+          "description": "Intensa attività in sala pesi."
+        },
+        {
+          "hour": 20,
+          "label": "20:00",
+          "percent": 70,
+          "typical": 70,
+          "level": "Moderato",
+          "color": "#F97316",
+          "comparisonStatus": "Consueto",
+          "description": "Fase serale di smaltimento."
+        },
+        {
+          "hour": 21,
+          "label": "21:00",
+          "percent": 55,
+          "typical": 55,
+          "level": "In Calo",
+          "color": "#38BDF8",
+          "comparisonStatus": "Consueto",
+          "description": "Ultima ora prima della chiusura."
+        }
+      ]
+    },
+    "mercoledi": {
+      "name": "Mercoledì",
+      "short": "Mer",
+      "isClosed": false,
+      "hours": [
+        {
+          "hour": 10,
+          "label": "10:00",
+          "percent": 10,
+          "typical": 10,
+          "level": "Molto Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Sala tranquilla, ideale per allenarsi senza fretta."
+        },
+        {
+          "hour": 11,
+          "label": "11:00",
+          "percent": 10,
+          "typical": 10,
+          "level": "Molto Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Massima tranquillità e attrezzi liberi."
+        },
+        {
+          "hour": 12,
+          "label": "12:00",
+          "percent": 10,
+          "typical": 10,
+          "level": "Molto Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Pochissimi tesserati presenti."
+        },
+        {
+          "hour": 13,
+          "label": "13:00",
+          "percent": 10,
+          "typical": 10,
+          "level": "Molto Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Nessuna attesa."
+        },
+        {
+          "hour": 14,
+          "label": "14:00",
+          "percent": 25,
+          "typical": 25,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Inizio turni pomeridiani."
+        },
+        {
+          "hour": 15,
+          "label": "15:00",
+          "percent": 35,
+          "typical": 35,
+          "level": "Moderato",
+          "color": "#38BDF8",
+          "comparisonStatus": "Consueto",
+          "description": "Presenza moderata."
+        },
+        {
+          "hour": 16,
+          "label": "16:00",
+          "percent": 55,
+          "typical": 55,
+          "level": "Moderato",
+          "color": "#F59E0B",
+          "comparisonStatus": "Consueto",
+          "description": "Attività regolare."
+        },
+        {
+          "hour": 17,
+          "label": "17:00",
+          "percent": 96,
+          "typical": 82,
+          "level": "Molto Affollato",
+          "color": "#EF4444",
+          "isLive": true,
+          "comparisonStatus": "Più affollato del solito",
+          "description": "Rilevamento in tempo reale Google Maps: affluenza straordinaria."
+        },
+        {
+          "hour": 18,
+          "label": "18:00",
+          "percent": 90,
+          "typical": 90,
+          "level": "Picco Massimo",
+          "color": "#EF4444",
+          "comparisonStatus": "Consueto",
+          "description": "Picco del mercoledì, alta richiesta macchinari."
+        },
+        {
+          "hour": 19,
+          "label": "19:00",
+          "percent": 85,
+          "typical": 85,
+          "level": "Molto Affollato",
+          "color": "#EF4444",
+          "comparisonStatus": "Consueto",
+          "description": "Turno centrale serale."
+        },
+        {
+          "hour": 20,
+          "label": "20:00",
+          "percent": 70,
+          "typical": 70,
+          "level": "Moderato",
+          "color": "#F97316",
+          "comparisonStatus": "Consueto",
+          "description": "Inizio decongestionamento."
+        },
+        {
+          "hour": 21,
+          "label": "21:00",
+          "percent": 55,
+          "typical": 55,
+          "level": "In Calo",
+          "color": "#38BDF8",
+          "comparisonStatus": "Consueto",
+          "description": "Ultimo turno."
+        }
+      ]
+    },
+    "giovedi": {
+      "name": "Giovedì",
+      "short": "Gio",
+      "isClosed": false,
+      "hours": [
+        {
+          "hour": 10,
+          "label": "10:00",
+          "percent": 15,
+          "typical": 15,
+          "level": "Molto Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Tranquillo e sgombro."
+        },
+        {
+          "hour": 11,
+          "label": "11:00",
+          "percent": 15,
+          "typical": 15,
+          "level": "Molto Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Zero code, ambiente ideale."
+        },
+        {
+          "hour": 12,
+          "label": "12:00",
+          "percent": 18,
+          "typical": 18,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Pausa pranzo scorrevole."
+        },
+        {
+          "hour": 13,
+          "label": "13:00",
+          "percent": 20,
+          "typical": 20,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Ottima disponibilità."
+        },
+        {
+          "hour": 14,
+          "label": "14:00",
+          "percent": 22,
+          "typical": 22,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Pomeriggio tranquillo."
+        },
+        {
+          "hour": 15,
+          "label": "15:00",
+          "percent": 30,
+          "typical": 30,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Flusso leggero."
+        },
+        {
+          "hour": 16,
+          "label": "16:00",
+          "percent": 50,
+          "typical": 50,
+          "level": "Moderato",
+          "color": "#F59E0B",
+          "comparisonStatus": "Consueto",
+          "description": "Aumento presenze pomeridiane."
+        },
+        {
+          "hour": 17,
+          "label": "17:00",
+          "percent": 65,
+          "typical": 65,
+          "level": "Affollato",
+          "color": "#F97316",
+          "comparisonStatus": "Consueto",
+          "description": "Turno pieno."
+        },
+        {
+          "hour": 18,
+          "label": "18:00",
+          "percent": 85,
+          "typical": 85,
+          "level": "Picco Massimo",
+          "color": "#EF4444",
+          "comparisonStatus": "Consueto",
+          "description": "Picco del giovedì, consigliato alternarsi alle postazioni."
+        },
+        {
+          "hour": 19,
+          "label": "19:00",
+          "percent": 80,
+          "typical": 80,
+          "level": "Affollato",
+          "color": "#EF4444",
+          "comparisonStatus": "Consueto",
+          "description": "Fascia serale calda."
+        },
+        {
+          "hour": 20,
+          "label": "20:00",
+          "percent": 65,
+          "typical": 65,
+          "level": "Moderato",
+          "color": "#F97316",
+          "comparisonStatus": "Consueto",
+          "description": "Diminuzione affluenza."
+        },
+        {
+          "hour": 21,
+          "label": "21:00",
+          "percent": 55,
+          "typical": 55,
+          "level": "In Calo",
+          "color": "#38BDF8",
+          "comparisonStatus": "Consueto",
+          "description": "Chiusura serale."
+        }
+      ]
+    },
+    "venerdi": {
+      "name": "Venerdì",
+      "short": "Ven",
+      "isClosed": false,
+      "hours": [
+        {
+          "hour": 10,
+          "label": "10:00",
+          "percent": 25,
+          "typical": 25,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Mattinata di venerdì scorrevole."
+        },
+        {
+          "hour": 11,
+          "label": "11:00",
+          "percent": 25,
+          "typical": 25,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Tutti gli attrezzi disponibili."
+        },
+        {
+          "hour": 12,
+          "label": "12:00",
+          "percent": 20,
+          "typical": 20,
+          "level": "Molto Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Pausa pranzo rilassata."
+        },
+        {
+          "hour": 13,
+          "label": "13:00",
+          "percent": 20,
+          "typical": 20,
+          "level": "Molto Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Pochissima affluenza."
+        },
+        {
+          "hour": 14,
+          "label": "14:00",
+          "percent": 18,
+          "typical": 18,
+          "level": "Molto Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Atmosfera calma pre-weekend."
+        },
+        {
+          "hour": 15,
+          "label": "15:00",
+          "percent": 30,
+          "typical": 30,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Flusso contenuto."
+        },
+        {
+          "hour": 16,
+          "label": "16:00",
+          "percent": 45,
+          "typical": 45,
+          "level": "Moderato",
+          "color": "#F59E0B",
+          "comparisonStatus": "Consueto",
+          "description": "Aumento regolare presenze."
+        },
+        {
+          "hour": 17,
+          "label": "17:00",
+          "percent": 65,
+          "typical": 65,
+          "level": "Affollato",
+          "color": "#F97316",
+          "comparisonStatus": "Consueto",
+          "description": "Turno pomeridiano."
+        },
+        {
+          "hour": 18,
+          "label": "18:00",
+          "percent": 20,
+          "typical": 90,
+          "level": "Calmo",
+          "color": "#10B981",
+          "isLive": true,
+          "comparisonStatus": "Meno affollato del solito",
+          "description": "Rilevamento live Google: sala insolitamente poco frequentata per un venerdì sera."
+        },
+        {
+          "hour": 19,
+          "label": "19:00",
+          "percent": 85,
+          "typical": 85,
+          "level": "Picco Tipico",
+          "color": "#EF4444",
+          "comparisonStatus": "Consueto",
+          "description": "Orario tipicamente più frequentato del venerdì sera."
+        },
+        {
+          "hour": 20,
+          "label": "20:00",
+          "percent": 60,
+          "typical": 60,
+          "level": "Moderato",
+          "color": "#F59E0B",
+          "comparisonStatus": "Consueto",
+          "description": "Deflusso verso il weekend."
+        },
+        {
+          "hour": 21,
+          "label": "21:00",
+          "percent": 35,
+          "typical": 35,
+          "level": "Calmo",
+          "color": "#10B981",
+          "comparisonStatus": "Consueto",
+          "description": "Ultimo turno prima del weekend."
+        }
+      ]
+    },
+    "sabato": {
+      "name": "Sabato",
+      "short": "Sab",
+      "isClosed": false,
+      "shiftsNotice": "Aperto mattina: 10:00 - 14:00 (Turni: 10-12 e 12-14) • Chiuso pomeriggio",
+      "hours": []
+    },
+    "domenica": {
+      "name": "Domenica",
+      "short": "Dom",
+      "isClosed": true,
+      "hours": []
+    }
+  }
+}

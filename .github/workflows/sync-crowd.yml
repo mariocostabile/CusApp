@@ -1,0 +1,36 @@
+name: Sync CUS Google Maps Crowd Data
+
+on:
+  schedule:
+    # Runs at :15 past every hour from 08:00 to 20:00 UTC (10:00 to 22:00 Italian Time) Monday through Saturday
+    - cron: '15 8-20 * * 1-6'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-crowd:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Puppeteer
+        run: npm install puppeteer --no-save
+
+      - name: Run Crowd Sync Script
+        run: node scripts/sync-google-crowd.js
+
+      - name: Commit and Push Changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "CusApp Crowd Bot"
+          git add crowd_live.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore(crowd): sync live Google Maps crowd data [skip ci]" && git push)
