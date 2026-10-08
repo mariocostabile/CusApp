@@ -87,6 +87,16 @@ Write-Host "  -> ANDROID_HOME: $env:ANDROID_HOME" -ForegroundColor DarkGray
 # 2. Sincronizzazione Prebuild Expo
 Write-Host "`n[2/4] Sincronizzazione progetto nativo con Expo..." -ForegroundColor Yellow
 Set-Location $ProjectRoot
+
+# Rilascia eventuali processi Gradle daemon attivi che mantengono lock sui file dex/jar in Windows
+if (Test-Path "$AndroidDir\gradlew.bat") {
+    try {
+        & "$AndroidDir\gradlew.bat" --stop | Out-Null
+    } catch {}
+}
+Get-Process -Name java -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 500
+
 cmd.exe /c "npx expo prebuild -p android --clean"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[ERRORE] Il prebuild di Expo è fallito." -ForegroundColor Red
@@ -102,6 +112,9 @@ if ($LASTEXITCODE -ne 0) {
     Set-Location $ProjectRoot
     exit $LASTEXITCODE
 }
+
+# Ferma il demone Gradle per liberare immediatamente RAM e sbloccare i file
+cmd.exe /c ".\gradlew.bat --stop" | Out-Null
 
 # 4. Copia e organizzazione del file APK finale
 Write-Host "`n[4/4] Finalizzazione APK..." -ForegroundColor Yellow
