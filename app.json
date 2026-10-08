@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "it.cuscosenza.app",
+      "versionCode": 2,
       "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#0083C4",
