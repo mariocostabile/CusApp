@@ -147,12 +147,21 @@ async function ginnipalFetch(
     method: options.method || 'GET',
     headers: reqHeaders,
     body: options.body,
+    credentials: 'include',
   });
 
   if (jar) {
-    const setCookie = res.headers.get('set-cookie');
-    if (setCookie) {
-      jar.list = parseCookieHeader(jar.list, setCookie);
+    const rawSetCookie =
+      typeof (res.headers as any).getSetCookie === 'function'
+        ? (res.headers as any).getSetCookie()
+        : res.headers.get('set-cookie');
+
+    if (Array.isArray(rawSetCookie)) {
+      for (const sc of rawSetCookie) {
+        jar.list = parseCookieHeader(jar.list, sc);
+      }
+    } else if (typeof rawSetCookie === 'string') {
+      jar.list = parseCookieHeader(jar.list, rawSetCookie);
     }
   }
 
@@ -171,6 +180,9 @@ async function loginAndInitSubForm(
 ): Promise<{ subFormKey: string; initControls: any; subInitControls: any }> {
   const cleanEmail = email.trim();
   const cleanPassword = password.trim();
+
+  // Reset cookie jar so we start login with a fresh, unauthenticated session
+  jar.list = [];
 
   // 1. GET AltLogin.aspx with cache-busting to prevent stale session FormKey
   const step1 = await ginnipalFetch(
@@ -239,13 +251,44 @@ async function loginAndInitSubForm(
     throw new Error(serverMsg || 'Email o password non corretti');
   }
 
-  // 3. GET ExtMain.aspx
-  const step3 = await ginnipalFetch(`https://ginnipal.it/CusCosenza/${redirectPath}`, {}, jar);
-  const extMainFormKeyMatch = step3.text.match(/var FormKey = "([^"]+)";/);
-  if (!extMainFormKeyMatch) {
-    throw new Error('Impossibile inizializzare la dashboard CUS GinniPAL');
+  // 3. GET ExtMain.aspx with robust URL normalization
+  const rawRedirect = String(redirectPath).trim();
+  let step3Url: string;
+  if (rawRedirect.startsWith('http://') || rawRedirect.startsWith('https://')) {
+    step3Url = rawRedirect.split('#')[0];
+  } else {
+    const pathNoHash = rawRedirect.split('#')[0].replace(/^\/+/, '');
+    const cleanPath = pathNoHash.startsWith('CusCosenza/')
+      ? pathNoHash.substring('CusCosenza/'.length)
+      : pathNoHash;
+    step3Url = `https://ginnipal.it/CusCosenza/${cleanPath || 'ExtMain.aspx'}`;
   }
-  const extMainFormKey = extMainFormKeyMatch[1];
+
+  const step3 = await ginnipalFetch(step3Url, {}, jar);
+
+  let extMainFormKey = '';
+  const extMainFormKeyMatch =
+    step3.text.match(/var FormKey = "([^"]+)";/) ||
+    step3.text.match(/FormKey\s*=\s*["']([^"']+)["']/i) ||
+    rawRedirect.match(/[#&?]FormKey=([^&#]+)/i);
+
+  if (extMainFormKeyMatch) {
+    extMainFormKey = extMainFormKeyMatch[1];
+  }
+
+  if (!extMainFormKey) {
+    // If not found in step3, try fetching ExtMain.aspx directly
+    const retryStep3 = await ginnipalFetch('https://ginnipal.it/CusCosenza/ExtMain.aspx', {}, jar);
+    const retryMatch =
+      retryStep3.text.match(/var FormKey = "([^"]+)";/) ||
+      retryStep3.text.match(/FormKey\s*=\s*["']([^"']+)["']/i);
+    if (retryMatch) {
+      extMainFormKey = retryMatch[1];
+    } else {
+      console.warn('[GinnipalService] Step 3 failed. Status:', step3.status, 'Target:', step3Url, 'Text snippet:', step3.text.substring(0, 300));
+      throw new Error('Impossibile inizializzare la dashboard CUS GinniPAL');
+    }
+  }
 
   // 4. GET ExtMain.Ajax.ashx/Initialize
   const step4 = await ginnipalFetch(
