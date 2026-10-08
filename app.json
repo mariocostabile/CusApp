@@ -32,7 +32,8 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 150
         }
-      ]
+      ],
+      "./plugins/withNetworkSecurityConfig"
     ],
     "experiments": {
       "typedRoutes": true,

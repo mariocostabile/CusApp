@@ -20,7 +20,9 @@ export async function saveUserSession(
     }
     await AsyncStorage.multiSet(pairs);
   } catch (e) {
-    console.warn('[StorageService] Error saving user session:', e);
+    if (__DEV__) {
+      console.warn('[StorageService] Error saving user session:', e);
+    }
   }
 }
 
@@ -30,7 +32,9 @@ export async function saveCachedDashboard(data: DashboardData): Promise<void> {
       await AsyncStorage.setItem(KEY_DASHBOARD_DATA, JSON.stringify(data));
     }
   } catch (e) {
-    console.warn('[StorageService] Error caching dashboard data:', e);
+    if (__DEV__) {
+      console.warn('[StorageService] Error caching dashboard data:', e);
+    }
   }
 }
 
@@ -62,7 +66,9 @@ export async function getUserSession(): Promise<{
 
     return { email, password, dashboardData };
   } catch (e) {
-    console.warn('[StorageService] Error getting user session:', e);
+    if (__DEV__) {
+      console.warn('[StorageService] Error getting user session:', e);
+    }
     return null;
   }
 }
@@ -75,6 +81,8 @@ export async function clearUserSession(): Promise<void> {
       KEY_DASHBOARD_DATA,
     ]);
   } catch (e) {
-    console.warn('[StorageService] Error clearing user session:', e);
+    if (__DEV__) {
+      console.warn('[StorageService] Error clearing user session:', e);
+    }
   }
 }

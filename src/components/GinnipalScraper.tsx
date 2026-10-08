@@ -102,7 +102,9 @@ export const GinnipalScraper = forwardRef<GinnipalScraperRef, GinnipalScraperPro
   const handleMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      console.log('[Scraper Message]:', data.type);
+      if (__DEV__) {
+        console.log('[Scraper Message]:', data.type);
+      }
       
       switch (data.type) {
         case 'LOGIN_SUCCESS':
@@ -132,7 +134,9 @@ export const GinnipalScraper = forwardRef<GinnipalScraperRef, GinnipalScraperPro
           break;
       }
     } catch (e) {
-      console.log('Error parsing webview message:', e);
+      if (__DEV__) {
+        console.log('Error parsing webview message:', e);
+      }
     }
   };
 

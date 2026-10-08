@@ -435,11 +435,15 @@ export default function App() {
               }
             })
             .catch((err) => {
-              console.warn('[App] Background live sync notice:', err);
+              if (__DEV__) {
+                console.warn('[App] Background live sync notice:', err);
+              }
             });
         }
       } catch (err) {
-        console.warn('[App] Error restoring session from storage:', err);
+        if (__DEV__) {
+          console.warn('[App] Error restoring session from storage:', err);
+        }
       } finally {
         if (isMounted) {
           setIsRestoringSession(false);

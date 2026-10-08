@@ -1,7 +1,7 @@
 const https = require('https');
 
-const DEFAULT_EMAIL = process.env.EXPO_PUBLIC_GINNIPAL_EMAIL || process.env.GINNIPAL_EMAIL || '';
-const DEFAULT_PASSWORD = process.env.EXPO_PUBLIC_GINNIPAL_PASSWORD || process.env.GINNIPAL_PASSWORD || '';
+const DEFAULT_EMAIL = process.env.GINNIPAL_EMAIL || '';
+const DEFAULT_PASSWORD = process.env.GINNIPAL_PASSWORD || '';
 
 function request(url, options = {}, postData = null) {
   return new Promise((resolve, reject) => {

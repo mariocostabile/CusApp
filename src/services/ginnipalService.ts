@@ -285,7 +285,9 @@ async function loginAndInitSubForm(
     if (retryMatch) {
       extMainFormKey = retryMatch[1];
     } else {
-      console.warn('[GinnipalService] Step 3 failed. Status:', step3.status, 'Target:', step3Url, 'Text snippet:', step3.text.substring(0, 300));
+      if (__DEV__) {
+        console.warn('[GinnipalService] Step 3 failed. Status:', step3.status, 'Target:', step3Url);
+      }
       throw new Error('Impossibile inizializzare la dashboard CUS GinniPAL');
     }
   }
@@ -308,7 +310,9 @@ async function loginAndInitSubForm(
     const parsedInit = JSON.parse(cleanInitJson);
     initControls = parsedInit.actions?.[0]?.controls || {};
   } catch (e) {
-    console.warn('[GinnipalService] Notice parsing initControls:', e);
+    if (__DEV__) {
+      console.warn('[GinnipalService] Notice parsing initControls:', e);
+    }
   }
 
   // 5. GET SubForm Initialize
@@ -324,7 +328,9 @@ async function loginAndInitSubForm(
     const parsedSub = JSON.parse(cleanSubJson);
     subInitControls = parsedSub.actions?.[0]?.controls || {};
   } catch (e) {
-    console.warn('[GinnipalService] Notice parsing subInitControls:', e);
+    if (__DEV__) {
+      console.warn('[GinnipalService] Notice parsing subInitControls:', e);
+    }
   }
 
   return { subFormKey, initControls, subInitControls };
@@ -410,12 +416,14 @@ async function fetchLiveGinnipalDirect(
     reservations,
   };
 
-  console.log('[GinnipalService] Live data fetched directly:', {
-    name: liveData.name,
-    used: liveData.subscription.used,
-    remaining: liveData.subscription.remaining,
-    reservationsCount: liveData.reservations.length,
-  });
+  if (__DEV__) {
+    console.log('[GinnipalService] Live data fetched directly:', {
+      name: liveData.name,
+      used: liveData.subscription.used,
+      remaining: liveData.subscription.remaining,
+      reservationsCount: liveData.reservations.length,
+    });
+  }
 
   return liveData;
 }
@@ -673,7 +681,9 @@ async function bookLiveReservationDirect(
     if (err?.message && !err.message.includes('JSON')) {
       throw err;
     }
-    console.log('[GinnipalService] Notice on EsitoPagamento:', err?.message);
+    if (__DEV__) {
+      console.log('[GinnipalService] Notice on EsitoPagamento:', err?.message);
+    }
   }
 
   // 15. Return fresh profile data with updated reservation count
@@ -756,7 +766,9 @@ async function cancelLiveReservationDirect(
       );
     }
   } catch (err: any) {
-    console.log('[GinnipalService] Notice on cancel confirm:', err?.message);
+    if (__DEV__) {
+      console.log('[GinnipalService] Notice on cancel confirm:', err?.message);
+    }
   }
 
   return await fetchLiveGinnipalDirect(email, password, jar);
@@ -773,16 +785,21 @@ export async function fetchLiveGinnipalData(
   const devOrigin = getDevServerBaseUrl();
   if (devOrigin) {
     try {
-      const proxyUrl = `${devOrigin}/api/ginnipal?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
-      const proxyRes = await fetch(proxyUrl);
+      const proxyRes = await fetch(`${devOrigin}/api/ginnipal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
       if (proxyRes.ok) {
         const data = await proxyRes.json();
         if (data && data.name) {
-          console.log('[GinnipalService] Live data fetched via bridge:', {
-            name: data.name,
-            used: data.subscription?.used,
-            remaining: data.subscription?.remaining,
-          });
+          if (__DEV__) {
+            console.log('[GinnipalService] Live data fetched via bridge:', {
+              name: data.name,
+              used: data.subscription?.used,
+              remaining: data.subscription?.remaining,
+            });
+          }
           return data as DashboardData;
         }
       }
@@ -807,8 +824,11 @@ export async function bookLiveReservation(
   const devOrigin = getDevServerBaseUrl();
   if (devOrigin) {
     try {
-      const url = `${devOrigin}/api/ginnipal/book?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&date=${encodeURIComponent(date)}&slot=${encodeURIComponent(slot)}`;
-      const res = await fetch(url);
+      const res = await fetch(`${devOrigin}/api/ginnipal/book`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, date, slot }),
+      });
       if (res.ok) {
         const data = await res.json();
         if (data && data.name) {
@@ -835,8 +855,11 @@ export async function cancelLiveReservation(
   const devOrigin = getDevServerBaseUrl();
   if (devOrigin) {
     try {
-      const url = `${devOrigin}/api/ginnipal/cancel?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&id=${encodeURIComponent(reservationId)}`;
-      const res = await fetch(url);
+      const res = await fetch(`${devOrigin}/api/ginnipal/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, id: reservationId, reservationId }),
+      });
       if (res.ok) {
         const data = await res.json();
         if (data && data.name) {
