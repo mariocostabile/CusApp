@@ -33,7 +33,8 @@
           "imageWidth": 150
         }
       ],
-      "./plugins/withNetworkSecurityConfig"
+      "./plugins/withNetworkSecurityConfig",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
