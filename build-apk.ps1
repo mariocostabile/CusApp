@@ -140,8 +140,12 @@ if (Test-Path $GeneratedApk) {
     # Torna alla cartella radice del progetto
     Set-Location $ProjectRoot
 
-    # Apre automaticamente la cartella dell'APK in Esplora File
-    explorer.exe /select,"$FinalApk"
+    # Apre automaticamente la cartella dell'APK in Esplora File evidenziando il file
+    try {
+        Start-Process explorer.exe -ArgumentList "/select,`"$FinalApk`""
+    } catch {
+        Invoke-Item $OutputDir
+    }
 } else {
     Write-Host "[ERRORE] Non è stato possibile trovare l'APK generato in: $GeneratedApk" -ForegroundColor Red
     Set-Location $ProjectRoot
