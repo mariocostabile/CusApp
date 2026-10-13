@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2026-10-13T00:37:47.959Z",
+  "lastUpdated": "2026-10-13T13:58:13.557Z",
   "placeName": "CUS Unical - Centro Universitario Sportivo Cosenza",
   "googleMapsUrl": "https://www.google.com/maps/place/CUS+Unical/@39.3576258,16.2169142,17z?hl=it",
-  "isLiveActive": false,
-  "currentPercent": 25,
-  "currentTypical": 25,
-  "comparisonStatus": "Consueto",
+  "isLiveActive": true,
+  "currentPercent": 35,
+  "currentTypical": 35,
+  "comparisonStatus": "Meno affollato del solito",
   "weeklyData": {
     "lunedi": {
       "name": "Lunedì",
@@ -196,8 +196,9 @@
           "typical": 35,
           "level": "Moderato",
           "color": "#38BDF8",
-          "comparisonStatus": "Consueto",
-          "description": "Inizio progressivo del turno pomeridiano."
+          "comparisonStatus": "Meno affollato del solito",
+          "description": "Inizio progressivo del turno pomeridiano.",
+          "isLive": true
         },
         {
           "hour": 16,
@@ -339,12 +340,11 @@
         {
           "hour": 17,
           "label": "17:00",
-          "percent": 96,
+          "percent": 82,
           "typical": 82,
           "level": "Molto Affollato",
           "color": "#EF4444",
-          "isLive": true,
-          "comparisonStatus": "Più affollato del solito",
+          "comparisonStatus": "Consueto",
           "description": "Rilevamento in tempo reale Google Maps: affluenza straordinaria."
         },
         {
@@ -604,12 +604,11 @@
         {
           "hour": 18,
           "label": "18:00",
-          "percent": 20,
+          "percent": 90,
           "typical": 90,
           "level": "Calmo",
           "color": "#10B981",
-          "isLive": true,
-          "comparisonStatus": "Meno affollato del solito",
+          "comparisonStatus": "Consueto",
           "description": "Rilevamento live Google: sala insolitamente poco frequentata per un venerdì sera."
         },
         {
