@@ -1383,7 +1383,7 @@ export default function App() {
                     Le prenotazioni possono essere annullate fino a 1 ora prima dell'inizio del turno. L'ingresso viene scalato al tornello.
                   </Text>
                   <Text style={[styles.bookingRuleText, { color: '#0369A1' }]}>
-                    Le pillole di affluenza dei turni si basano su medie statistiche storiche: l'unico dato certo in tempo reale è l'affluenza attuale visualizzata nella scheda monitoraggio in Home.
+                    Le pillole di affluenza dei turni sono stime basate sulle medie storiche di Google Maps. Lo stato in tempo reale (più o meno affollato del solito) si trova nella scheda monitoraggio in Home, quando disponibile.
                   </Text>
                 </View>
               </View>
