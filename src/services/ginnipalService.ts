@@ -251,8 +251,19 @@ async function loginAndInitSubForm(
     throw new Error(serverMsg || 'Email o password non corretti');
   }
 
+  return initSubForm(jar, String(redirectPath).trim());
+}
+
+/**
+ * Steps 3-5: open ExtMain and the tesserato subform on an already authenticated jar.
+ * Re-running it with rawRedirect='' refreshes data without a second login (GinniPAL
+ * rejects a new login while the previous session is still alive).
+ */
+async function initSubForm(
+  jar: CookieJar,
+  rawRedirect: string
+): Promise<{ subFormKey: string; initControls: any; subInitControls: any }> {
   // 3. GET ExtMain.aspx with robust URL normalization
-  const rawRedirect = String(redirectPath).trim();
   let step3Url: string;
   if (rawRedirect.startsWith('http://') || rawRedirect.startsWith('https://')) {
     step3Url = rawRedirect.split('#')[0];
@@ -300,6 +311,9 @@ async function loginAndInitSubForm(
   );
   const subFormMatch = step4.text.match(/formKey=([^&"]+)/);
   if (!subFormMatch) {
+    if (__DEV__) {
+      console.warn('[GinnipalService] Initialize senza formKey:', step4.status, step4.text.slice(0, 300));
+    }
     throw new Error('Chiave modulo tesserato non trovata');
   }
   const subFormKey = subFormMatch[1];
@@ -336,20 +350,35 @@ async function loginAndInitSubForm(
   return { subFormKey, initControls, subInitControls };
 }
 
+async function refreshAfterAction(
+  email: string,
+  password: string,
+  jar: CookieJar
+): Promise<DashboardData> {
+  try {
+    return await fetchLiveGinnipalDirect(email, password, jar, true);
+  } catch {
+    return await fetchLiveGinnipalDirect(email, password);
+  }
+}
+
 /**
  * Direct HTTPS profile and reservation scraper.
  */
 async function fetchLiveGinnipalDirect(
   email: string,
   password: string,
-  existingJar?: CookieJar
+  existingJar?: CookieJar,
+  reuseSession = false
 ): Promise<DashboardData> {
   if (Platform.OS === 'web') {
     return FALLBACK_DASHBOARD_DATA;
   }
 
   const jar = existingJar || { list: [] };
-  const { initControls, subInitControls } = await loginAndInitSubForm(email, password, jar);
+  const { initControls, subInitControls } = reuseSession
+    ? await initSubForm(jar, '')
+    : await loginAndInitSubForm(email, password, jar);
 
   const rawName = initControls.mp_stPersona?.html || subInitControls.mp_stPersona?.html || '';
   const cleanName = rawName ? decodeHtml(rawName).replace(/<[^>]*>/g, '').trim() : '';
@@ -687,7 +716,7 @@ async function bookLiveReservationDirect(
   }
 
   // 15. Return fresh profile data with updated reservation count
-  return await fetchLiveGinnipalDirect(email, password, jar);
+  return await refreshAfterAction(email, password, jar);
 }
 
 /**
@@ -771,7 +800,7 @@ async function cancelLiveReservationDirect(
     }
   }
 
-  return await fetchLiveGinnipalDirect(email, password, jar);
+  return await refreshAfterAction(email, password, jar);
 }
 
 /**
