@@ -1202,7 +1202,7 @@ export default function App() {
                     <View style={styles.liveCenteredHeader}>
                       <View style={styles.livePillSmall}>
                         <View style={styles.livePulsingDot} />
-                        <Text style={styles.livePillSmallText}>LIVE • {activeDayData.name.toUpperCase()}</Text>
+                        <Text style={styles.livePillSmallText}>{liveCrowdItem.isLive ? 'LIVE' : 'STIMA'} • {activeDayData.name.toUpperCase()}</Text>
                       </View>
                       <Text style={styles.lastUpdateCentered} numberOfLines={1}>
                         Aggiornato: ore {lastCrowdRefresh}
@@ -1210,9 +1210,26 @@ export default function App() {
                     </View>
 
                     <View style={styles.liveStatusRowCentered}>
-                      <Text style={styles.liveStatusSubtitle}>Rilevamento Live Ora:</Text>
-                      <Text style={[styles.liveStatusValue, { color: liveCrowdItem.color }]}>
-                        {liveCrowdItem.level} • ~{liveCrowdItem.percent}%
+                      <Text style={styles.liveStatusSubtitle}>
+                        {liveCrowdItem.isLive ? 'In tempo reale:' : "Stima per quest'ora:"}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.liveStatusValue,
+                          {
+                            color: !liveCrowdItem.isLive
+                              ? liveCrowdItem.color
+                              : /Più/.test(liveCrowdItem.comparisonStatus || '')
+                              ? '#EF4444'
+                              : /Meno/.test(liveCrowdItem.comparisonStatus || '')
+                              ? '#10B981'
+                              : '#64748B',
+                          },
+                        ]}
+                      >
+                        {liveCrowdItem.isLive
+                          ? liveCrowdItem.comparisonStatus
+                          : `${liveCrowdItem.level} • ~${liveCrowdItem.percent}%`}
                       </Text>
                     </View>
 
@@ -1221,32 +1238,10 @@ export default function App() {
                       <View style={styles.comparisonBarGroup}>
                         <View style={styles.comparisonBarLabelRow}>
                           <Text style={styles.comparisonLabel} numberOfLines={1} ellipsizeMode="tail">
-                            Attuale ({liveCrowdItem.label}):
-                          </Text>
-                          <Text style={[styles.comparisonValue, { color: liveCrowdItem.color }]}>
-                            {liveCrowdItem.percent}% • {liveCrowdItem.comparisonStatus || getCrowdComparisonLabel(liveCrowdItem.percent, liveCrowdItem.typical)}
-                          </Text>
-                        </View>
-                        <View style={styles.comparisonBarTrack}>
-                          <View
-                            style={[
-                              styles.comparisonBarFill,
-                              {
-                                width: `${liveCrowdItem.percent}%`,
-                                backgroundColor: liveCrowdItem.color,
-                              },
-                            ]}
-                          />
-                        </View>
-                      </View>
-
-                      <View style={styles.comparisonBarGroup}>
-                        <View style={styles.comparisonBarLabelRow}>
-                          <Text style={styles.comparisonLabel} numberOfLines={1} ellipsizeMode="tail">
-                            Media {activeDayData.name} ({liveCrowdItem.label}):
+                            Affluenza tipica {activeDayData.name} ({liveCrowdItem.label}):
                           </Text>
                           <Text style={[styles.comparisonValue, { color: '#64748B' }]}>
-                            ~{liveCrowdItem.typical}% • Consueto
+                            ~{liveCrowdItem.typical}%
                           </Text>
                         </View>
                         <View style={styles.comparisonBarTrack}>
@@ -1286,7 +1281,7 @@ export default function App() {
               {/* Clean Hourly Bar Chart with Habitual Level in Grey for Current Bar */}
               <View style={styles.crowdChartContainer}>
                 {activeCrowdList.map((item) => {
-                  const isLiveNow = isTodaySelected && isGymOpenNow && item.hour === currentHour;
+                  const isLiveNow = isTodaySelected && isGymOpenNow && item.hour === currentHour && !!item.isLive;
                   const barHeight = Math.max(14, Math.round((item.percent / 100) * 80));
                   const typicalHeight = Math.max(14, Math.round((item.typical / 100) * 80));
 

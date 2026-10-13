@@ -192,7 +192,8 @@ export function getCrowdLevelAndColor(percent: number): { level: string; color: 
 async function loadLatestWeeklyDataset(): Promise<{
   weekly: Record<string, GoogleCrowdDay>;
   liveStatus?: string;
-  livePercent?: number;
+  isLiveActive?: boolean;
+  lastUpdated?: string;
 }> {
   // 1. Try remote with cache buster to guarantee freshest data from GitHub
   const timestampParam = Date.now();
@@ -213,7 +214,8 @@ async function loadLatestWeeklyDataset(): Promise<{
           return {
             weekly: json.weeklyData,
             liveStatus: json.comparisonStatus,
-            livePercent: json.currentPercent,
+            isLiveActive: json.isLiveActive,
+            lastUpdated: json.lastUpdated,
           };
         }
       }
@@ -231,7 +233,8 @@ async function loadLatestWeeklyDataset(): Promise<{
         return {
           weekly: json.weeklyData,
           liveStatus: json.comparisonStatus,
-          livePercent: json.currentPercent,
+          isLiveActive: json.isLiveActive,
+          lastUpdated: json.lastUpdated,
         };
       }
     }
@@ -247,6 +250,8 @@ async function loadLatestWeeklyDataset(): Promise<{
  * Fetches real-time crowd data from Google Maps
  * Invoked on app startup/login AND on pull-to-refresh
  */
+const LIVE_MAX_AGE_MS = 90 * 60 * 1000;
+
 export async function fetchLiveGoogleCrowd(): Promise<LiveCrowdSnapshot> {
   const now = new Date();
   const h = String(now.getHours()).padStart(2, '0');
@@ -260,6 +265,10 @@ export async function fetchLiveGoogleCrowd(): Promise<LiveCrowdSnapshot> {
 
   const datasetResult = await loadLatestWeeklyDataset();
   const weekly = datasetResult.weekly;
+  const scraped = new Date(datasetResult.lastUpdated || '');
+  const scrapedAt = isNaN(scraped.getTime())
+    ? timestamp
+    : `${String(scraped.getHours()).padStart(2, '0')}:${String(scraped.getMinutes()).padStart(2, '0')}`;
 
   let currentPercent = 50;
   let currentTypical = 50;
@@ -271,21 +280,15 @@ export async function fetchLiveGoogleCrowd(): Promise<LiveCrowdSnapshot> {
   if (todayData && !todayData.isClosed && todayData.hours.length > 0) {
     const liveItem = todayData.hours.find((it) => it.hour === currentHour);
     if (liveItem) {
-      if (datasetResult.livePercent !== undefined && datasetResult.livePercent !== null) {
-        liveItem.percent = datasetResult.livePercent;
-        if (datasetResult.liveStatus) {
-          liveItem.comparisonStatus = datasetResult.liveStatus;
-        }
-        const dynamicMeta = getCrowdLevelAndColor(liveItem.percent);
-        liveItem.level = dynamicMeta.level;
-        liveItem.color = dynamicMeta.color;
-      }
-      liveItem.isLive = true;
+      // Live only if the scraper saw it recently: the file can be hours old
+      const ageMs = Date.now() - Date.parse(datasetResult.lastUpdated || '');
+      isLiveDetected = !!datasetResult.isLiveActive && ageMs >= 0 && ageMs < LIVE_MAX_AGE_MS;
+      liveItem.isLive = isLiveDetected;
+      liveItem.comparisonStatus = isLiveDetected && datasetResult.liveStatus ? datasetResult.liveStatus : 'Consueto';
       currentPercent = liveItem.percent;
       currentTypical = liveItem.typical;
       currentLevel = liveItem.level;
       comparisonText = liveItem.comparisonStatus || getCrowdComparisonLabel(currentPercent, currentTypical);
-      isLiveDetected = true;
     } else {
       const nearest = todayData.hours.find((it) => Math.abs(it.hour - currentHour) <= 1) || todayData.hours[0];
       if (nearest) {
@@ -298,7 +301,7 @@ export async function fetchLiveGoogleCrowd(): Promise<LiveCrowdSnapshot> {
   }
 
   return {
-    timestamp,
+    timestamp: scrapedAt,
     currentPercent,
     currentTypical,
     currentLevel,

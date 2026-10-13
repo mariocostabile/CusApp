@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/CUS+Unical/@39.3576258,16.2169142,17z?hl=it';
+const GOOGLE_SEARCH_URL = 'https://www.google.com/search?q=CUS+Unical+Quattromiglia&hl=it&gl=it';
 const OUTPUT_FILE = path.join(__dirname, '..', 'crowd_live.json');
 
 async function scrapeGoogleCrowd() {
@@ -29,6 +30,21 @@ async function scrapeGoogleCrowd() {
     console.warn('[CrowdSync] Could not read existing crowd_live.json:', e.message);
   }
 
+  // The runner is in UTC: take day and hour in Italian time, the same used in weeklyData
+  const romeParts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Rome', weekday: 'short', hour: '2-digit', hourCycle: 'h23' })
+      .formatToParts(new Date())
+      .map((p) => [p.type, p.value])
+  );
+  const currentHour = parseInt(romeParts.hour, 10);
+  const todayKey = { Sun: 'domenica', Mon: 'lunedi', Tue: 'martedi', Wed: 'mercoledi', Thu: 'giovedi', Fri: 'venerdi', Sat: 'sabato' }[romeParts.weekday];
+  // CUS opens 10-22, Saturday 10-14, closed Sunday
+  const closeHour = todayKey === 'sabato' ? 14 : todayKey === 'domenica' ? 0 : 22;
+  if (currentHour < 10 || currentHour >= closeHour) {
+    console.log(`[CrowdSync] CUS closed (${todayKey} ${currentHour}:xx Rome time), skipping.`);
+    return;
+  }
+
   const browser = await puppeteer.launch({
     headless: 'new',
     args: [
@@ -40,6 +56,7 @@ async function scrapeGoogleCrowd() {
       '--no-zygote',
       '--disable-gpu',
       '--lang=it-IT,it',
+      '--disable-blink-features=AutomationControlled',
     ],
   });
 
@@ -50,84 +67,72 @@ async function scrapeGoogleCrowd() {
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     );
 
-    console.log('[CrowdSync] Navigating to Google Maps place...');
-    await page.goto(GOOGLE_MAPS_URL, { waitUntil: 'networkidle2', timeout: 45000 });
+    // Maps serves a "limited view" without popular times to headless browsers: use the Search knowledge panel
+    console.log('[CrowdSync] Navigating to Google Search knowledge panel...');
+    await page.goto(GOOGLE_SEARCH_URL, { waitUntil: 'networkidle2', timeout: 45000 });
 
-    // Handle cookie consent if visible
-    try {
-      const consentButton = await page.$('button[aria-label*="Accetta"], form[action*="consent"] button');
-      if (consentButton) {
-        console.log('[CrowdSync] Accepting Google cookie consent...');
-        await consentButton.click();
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 10000 }).catch(() => { });
-      }
-    } catch { }
+    // The consent page has hidden duplicate buttons and "Rifiuta tutto" first: click the visible "Accetta tutto"
+    const accepted = await page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('button')).find(
+        (b) => /accetta tutto/i.test(b.innerText) && b.offsetParent
+      );
+      if (btn) btn.click();
+      return !!btn;
+    });
+    if (accepted) {
+      console.log('[CrowdSync] Accepted Google cookie consent.');
+      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => { });
+    }
+    await new Promise((r) => setTimeout(r, 3000));
 
-    // Wait a bit for popular times to render
-    await new Promise((r) => setTimeout(r, 4000));
+    if (page.url().includes('/sorry/')) {
+      console.warn('[CrowdSync] Google served a captcha (/sorry): live data unavailable for this run.');
+    }
 
-    // Evaluate live busyness and popular times elements
     const scrapedResult = await page.evaluate(() => {
-      let liveText = '';
-      let livePercent = null;
+      // Screen-reader text of the knowledge panel, e.g. "In tempo reale: Meno affollato del solito"
+      const liveRegion = Array.from(document.querySelectorAll('[aria-live]')).find((e) =>
+        /In tempo reale/i.test(e.textContent || '')
+      );
+      const liveText = liveRegion ? liveRegion.textContent.trim() : '';
       let liveStatus = 'Consueto';
-
-      // Look for aria-label with live busyness
-      const elementsWithAria = Array.from(document.querySelectorAll('[aria-label]'));
-      for (const el of elementsWithAria) {
-        const aria = el.getAttribute('aria-label') || '';
-        // E.g. "Attualmente affollato al 75%, di solito al 75%"
-        if (aria.includes('Attualmente') || aria.includes('In tempo reale') || aria.includes('affollato al')) {
-          liveText = aria;
-          const pctMatch = aria.match(/(\d+)%/);
-          if (pctMatch) {
-            livePercent = parseInt(pctMatch[1], 10);
-          }
-          if (aria.includes('Più affollato') || aria.includes('più affollato')) {
-            liveStatus = 'Più affollato del solito';
-          } else if (aria.includes('Meno affollato') || aria.includes('meno affollato')) {
-            liveStatus = 'Meno affollato del solito';
-          }
-          break;
-        }
-      }
-
-      return {
-        liveText,
-        livePercent,
-        liveStatus,
-      };
+      if (/Più affollato/i.test(liveText)) liveStatus = 'Più affollato del solito';
+      else if (/Meno affollato/i.test(liveText)) liveStatus = 'Meno affollato del solito';
+      return { isLive: !!liveText, liveStatus, liveText, pageUrl: location.href };
     });
 
     console.log('[CrowdSync] Scrape evaluation:', scrapedResult);
 
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentDay = now.getDay();
-    const CROWD_DAY_MAP = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
-    const todayKey = CROWD_DAY_MAP[currentDay];
+
+    // Drop live readings left by previous runs, so they never outlive their hour
+    for (const day of Object.values(existingData.weeklyData || {})) {
+      for (const h of day.hours || []) {
+        if (h.isLive) {
+          delete h.isLive;
+          h.percent = h.typical;
+          h.comparisonStatus = 'Consueto';
+        }
+      }
+    }
 
     const updatedData = {
       ...existingData,
       lastUpdated: now.toISOString(),
       placeName: 'CUS Unical - Centro Universitario Sportivo Cosenza',
       googleMapsUrl: GOOGLE_MAPS_URL,
-      isLiveActive: scrapedResult.livePercent !== null,
+      isLiveActive: scrapedResult.isLive,
+      comparisonStatus: scrapedResult.isLive ? scrapedResult.liveStatus : 'Consueto',
     };
 
-    if (scrapedResult.livePercent !== null) {
-      updatedData.currentPercent = scrapedResult.livePercent;
-      updatedData.comparisonStatus = scrapedResult.liveStatus;
-
-      // Update today's current hour slot in weeklyData if available
-      if (updatedData.weeklyData && updatedData.weeklyData[todayKey]) {
-        const hours = updatedData.weeklyData[todayKey].hours || [];
-        const slot = hours.find((h) => h.hour === currentHour);
-        if (slot) {
-          slot.percent = scrapedResult.livePercent;
-          slot.comparisonStatus = scrapedResult.liveStatus;
-          slot.isLive = true;
-        }
+    // Google gives live crowding in words only: percent stays the typical value, the status goes on the current hour
+    const slot = ((updatedData.weeklyData || {})[todayKey]?.hours || []).find((h) => h.hour === currentHour);
+    if (slot) {
+      updatedData.currentPercent = slot.typical;
+      updatedData.currentTypical = slot.typical;
+      if (scrapedResult.isLive) {
+        slot.comparisonStatus = scrapedResult.liveStatus;
+        slot.isLive = true;
       }
     }
 
