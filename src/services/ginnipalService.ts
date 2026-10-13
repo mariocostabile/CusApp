@@ -147,7 +147,7 @@ async function ginnipalFetch(
     method: options.method || 'GET',
     headers: reqHeaders,
     body: options.body,
-    credentials: 'include',
+    credentials: 'omit',
   });
 
   if (jar) {
