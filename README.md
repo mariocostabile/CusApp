@@ -244,12 +244,6 @@ CusApp/
    npm install
    ```
 
-3. Configura le variabili d'ambiente (facoltativo per login rapido in sviluppo):
-   ```bash
-   cp .env.example .env
-   ```
-   *Inserisci nel file `.env` locale le credenziali GinniPAL desiderate.*
-
 ---
 
 ## 🚀 Esecuzione e Sviluppo
@@ -298,11 +292,32 @@ npx tsc --noEmit
 ```
 
 > [!NOTE]
-> Il server Metro espone internamente gli endpoint proxy `/api/ginnipal` sulla porta **8081**. Assicurarsi che la porta sia libera prima di avviare il dev server.
+> Il server Metro espone internamente gli endpoint proxy `/api/ginnipal` sulla porta **8081**. Assicurarsi che la porta sia libera prima di avviare il dev server. Il proxy accetta solo richieste `POST` con le credenziali nel corpo: non usa credenziali di default.
 
 ---
 
 ## 🏗️ Build & Distribuzione
+
+### Chiave di firma (obbligatoria)
+
+La build di release è firmata con una chiave privata, collegata dal plugin `plugins/withReleaseSigning.js`. Senza la chiave la build di release fallisce (non ricade sulla chiave di debug pubblica).
+
+1. Genera la chiave **fuori dal repository**:
+   ```bash
+   keytool -genkeypair -v -storetype PKCS12 -keystore ~/.cusapp/cusapp-release.jks -alias cusapp -keyalg RSA -keysize 4096 -validity 10000
+   ```
+2. Aggiungi in `~/.gradle/gradle.properties` (file utente, **mai** nel repo):
+   ```properties
+   CUSAPP_UPLOAD_STORE_FILE=C:/percorso/alla/cusapp-release.jks
+   CUSAPP_UPLOAD_STORE_PASSWORD=<password>
+   CUSAPP_UPLOAD_KEY_ALIAS=cusapp
+   CUSAPP_UPLOAD_KEY_PASSWORD=<password>
+   ```
+
+> [!WARNING]
+> Non committare mai il file `.jks` né le password. Conservane un backup sicuro: se la chiave va persa non è più possibile pubblicare aggiornamenti dell'app, e chi l'ha installata deve disinstallarla.
+
+### Compilazione
 
 Per compilare il pacchetto autonomo di distribuzione per Android (`.apk`):
 

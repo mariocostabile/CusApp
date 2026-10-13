@@ -47,17 +47,15 @@ config.server = {
             if (bodyData) body = JSON.parse(bodyData);
           } catch {}
 
-          const urlObj = new URL(req.url, 'http://localhost:8081');
-          const email =
-            body.email ||
-            urlObj.searchParams.get('email') ||
-            process.env.GINNIPAL_EMAIL ||
-            '';
-          const password =
-            body.password ||
-            urlObj.searchParams.get('password') ||
-            process.env.GINNIPAL_PASSWORD ||
-            '';
+          // Credentials only from the POST body: no .env fallback (anyone on the LAN/tunnel
+          // would act as the dev) and no query string (ends up in logs).
+          const email = body.email || '';
+          const password = body.password || '';
+          if (req.method !== 'POST' || !email || !password) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Credenziali mancanti' }));
+            return;
+          }
 
           // Clear require cache so changes to fetcher are immediately picked up by running Metro
           delete require.cache[require.resolve('./src/services/ginnipalNodeFetcher')];
@@ -68,8 +66,8 @@ config.server = {
           } = require('./src/services/ginnipalNodeFetcher');
 
           if (req.url.startsWith('/api/ginnipal/book')) {
-            const date = body.date || urlObj.searchParams.get('date') || '';
-            const slot = body.slot || urlObj.searchParams.get('slot') || '';
+            const date = body.date || '';
+            const slot = body.slot || '';
             bookSlotLiveGinnipal(email, password, date, slot)
               .then((data) => {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -83,7 +81,7 @@ config.server = {
           }
 
           if (req.url.startsWith('/api/ginnipal/cancel')) {
-            const resId = body.id || body.reservationId || urlObj.searchParams.get('id') || '';
+            const resId = body.id || body.reservationId || '';
             cancelBookingLiveGinnipal(email, password, resId)
               .then((data) => {
                 res.writeHead(200, { 'Content-Type': 'application/json' });

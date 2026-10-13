@@ -2,6 +2,9 @@ import React, { useRef, useState, useEffect, forwardRef, useImperativeHandle } f
 import WebView from 'react-native-webview';
 import { View } from 'react-native';
 
+// Trailing slash so look-alike hosts (ginnipal.it.evil.com) don't match.
+const GINNIPAL_ORIGIN = 'https://ginnipal.it/';
+
 export type ScraperState = 'idle' | 'logging_in' | 'logged_in' | 'fetching_dashboard' | 'booking' | 'cancelling' | 'error';
 
 export interface DashboardData {
@@ -100,6 +103,7 @@ export const GinnipalScraper = forwardRef<GinnipalScraperRef, GinnipalScraperPro
   }));
 
   const handleMessage = (event: any) => {
+    if (!String(event?.nativeEvent?.url || '').startsWith(GINNIPAL_ORIGIN)) return;
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (__DEV__) {
@@ -270,6 +274,8 @@ export const GinnipalScraper = forwardRef<GinnipalScraperRef, GinnipalScraperPro
 
   const injectScript = (navState: any) => {
     const url = navState?.url || navState?.nativeEvent?.url || '';
+    // Never inject the credential-filling scripts into a page outside GinniPAL.
+    if (!url.startsWith(GINNIPAL_ORIGIN)) return;
     if (url.includes('ExtMain.aspx') && scraperState === 'logging_in') {
       setScraperState('logged_in');
       onLoginSuccess();
@@ -288,6 +294,7 @@ export const GinnipalScraper = forwardRef<GinnipalScraperRef, GinnipalScraperPro
       <WebView
         ref={webViewRef}
         source={{ uri: currentUrl }}
+        originWhitelist={['https://ginnipal.it']}
         onNavigationStateChange={injectScript}
         onLoadEnd={injectScript}
         onMessage={handleMessage}

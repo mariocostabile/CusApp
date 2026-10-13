@@ -35,6 +35,7 @@
         }
       ],
       "./plugins/withNetworkSecurityConfig",
+      "./plugins/withReleaseSigning",
       "expo-secure-store"
     ],
     "experiments": {
