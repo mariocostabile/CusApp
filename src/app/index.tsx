@@ -915,18 +915,30 @@ export default function App() {
         {/* Medical Certificate Banner */}
         <View style={styles.certCard}>
           <View style={styles.certIconContainer}>
-            <Text style={styles.certIcon}>🛡️</Text>
+            <Text style={styles.certIcon}>{dashboardData.medicalCertExpiry ? '🛡️' : '⚠️'}</Text>
           </View>
           <View style={styles.certContent}>
             <View style={styles.certHeaderRow}>
               <Text style={styles.certTitle}>Certificato Medico</Text>
-              <View style={styles.activeTag}>
-                <Text style={styles.activeTagText}>VALIDO</Text>
-              </View>
+              {dashboardData.medicalCertExpiry ? (
+                <View style={styles.activeTag}>
+                  <Text style={styles.activeTagText}>VALIDO</Text>
+                </View>
+              ) : (
+                <View style={[styles.activeTag, { backgroundColor: '#FEF3C7' }]}>
+                  <Text style={[styles.activeTagText, { color: '#B45309' }]}>DA PRESENTARE</Text>
+                </View>
+              )}
             </View>
-            <Text style={styles.certDetails}>
-              Scadenza: <Text style={styles.boldText}>{dashboardData.medicalCertExpiry}</Text> • Non Agonistica
-            </Text>
+            {dashboardData.medicalCertExpiry ? (
+              <Text style={styles.certDetails}>
+                Scadenza: <Text style={styles.boldText}>{dashboardData.medicalCertExpiry}</Text> • Non Agonistica
+              </Text>
+            ) : (
+              <Text style={styles.certDetails}>
+                Il certificato medico non è ancora stato registrato sul portale CUS.
+              </Text>
+            )}
           </View>
         </View>
 
@@ -1335,14 +1347,7 @@ export default function App() {
           )}
         </View>
 
-        {/* University Info Card */}
-        <View style={styles.uniCard}>
-          <Text style={styles.uniTitle}>Convenzione Studente</Text>
-          <Text style={styles.uniText}>
-            Università della Calabria • Ingegneria Informatica (DIMES)
-          </Text>
-          <Text style={styles.uniMatricola}>Matricola: 290949</Text>
-        </View>
+
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -2850,7 +2855,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
   },
   cancelResBtn: {
     paddingVertical: 7,
