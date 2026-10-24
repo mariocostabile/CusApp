@@ -478,7 +478,7 @@ export default function App() {
     setIsRefreshing(true);
     try {
       const [liveGinnipal, snap] = await Promise.all([
-        fetchLiveGinnipalData(email, password),
+        isGuest ? Promise.resolve(null) : fetchLiveGinnipalData(email, password),
         fetchLiveGoogleCrowd(),
       ]);
       if (liveGinnipal && liveGinnipal.name) {
@@ -899,10 +899,10 @@ export default function App() {
         </View>
         <TouchableOpacity
           style={styles.logoutBtn}
-          onPress={handleLogout}
+          onPress={isGuest ? handleGoToLogin : handleLogout}
           activeOpacity={0.7}
         >
-          <Text style={styles.logoutBtnText}>Esci</Text>
+          <Text style={styles.logoutBtnText}>{isGuest ? 'Accedi' : 'Esci'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -919,6 +919,29 @@ export default function App() {
           />
         }
       >
+        {/* Guest Mode: Login teaser replacing personal cards */}
+        {isGuest && (
+          <View style={styles.card}>
+            <Text style={styles.cardSubHeader}>MODALITÀ OSPITE</Text>
+            <Text style={styles.cardMainTitle}>Accedi per sbloccare tutto</Text>
+            <View style={styles.guestPerksList}>
+              <Text style={styles.guestPerk}>• Ingressi residui e scadenza dell&apos;abbonamento</Text>
+              <Text style={styles.guestPerk}>• Prenotazione dei turni in pochi tap</Text>
+              <Text style={styles.guestPerk}>• Cancellazione con countdown fino a 1 ora prima</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.bookActionBtn}
+              onPress={handleGoToLogin}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+            >
+              <Text style={styles.bookActionBtnText}>ACCEDI CON IL TUO ACCOUNT</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {!isGuest && (
+        <>
         {/* User Welcome Card */}
         {(() => {
           const displayName = formatFirstAndLastName(dashboardData.name);
@@ -1118,6 +1141,9 @@ export default function App() {
             })
           )}
         </View>
+
+        </>
+        )}
 
         {/* 3. Scheda Affluenza: Native In-App Real-Time Crowd Analytics Card */}
         <View style={styles.card}>
@@ -2245,6 +2271,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
+  },
+  guestPerksList: {
+    marginTop: 12,
+    marginBottom: 18,
+    gap: 6,
+  },
+  guestPerk: {
+    fontSize: 14,
+    color: '#334155',
+    lineHeight: 20,
   },
   cancelRuleNotice: {
     fontSize: 11,
