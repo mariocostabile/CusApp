@@ -5,6 +5,7 @@ import { DashboardData } from './ginnipalService';
 const KEY_USER_EMAIL = '@cusapp_user_email';
 const KEY_LEGACY_USER_PASSWORD = '@cusapp_user_password';
 const KEY_DASHBOARD_DATA = '@cusapp_dashboard_data';
+const KEY_GUEST_MODE = '@cusapp_guest_mode';
 
 const SECURE_KEY_PASSWORD = 'cusapp_user_password';
 
@@ -139,6 +140,34 @@ export async function getUserSession(): Promise<{
   }
 }
 
+/**
+ * Persists the "continue without login" choice across app launches.
+ */
+export async function saveGuestMode(enabled: boolean): Promise<void> {
+  try {
+    if (enabled) {
+      await AsyncStorage.setItem(KEY_GUEST_MODE, '1');
+    } else {
+      await AsyncStorage.removeItem(KEY_GUEST_MODE);
+    }
+  } catch (e) {
+    if (__DEV__) {
+      console.warn('[StorageService] Error saving guest mode:', e);
+    }
+  }
+}
+
+export async function getGuestMode(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(KEY_GUEST_MODE)) === '1';
+  } catch (e) {
+    if (__DEV__) {
+      console.warn('[StorageService] Error reading guest mode:', e);
+    }
+    return false;
+  }
+}
+
 export async function clearUserSession(): Promise<void> {
   try {
     const secureAvailable = await isSecureStoreAvailable();
@@ -150,6 +179,7 @@ export async function clearUserSession(): Promise<void> {
       KEY_USER_EMAIL,
       KEY_LEGACY_USER_PASSWORD,
       KEY_DASHBOARD_DATA,
+      KEY_GUEST_MODE,
     ]);
   } catch (e) {
     if (__DEV__) {
