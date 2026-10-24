@@ -28,6 +28,8 @@ import {
   getUserSession,
   saveCachedDashboard,
   clearUserSession,
+  saveGuestMode,
+  getGuestMode,
 } from '../services/storageService';
 
 LogBox.ignoreLogs([
@@ -349,6 +351,7 @@ export default function App() {
   const AVAILABLE_DAYS = getDynamicBookingDays();
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -439,6 +442,10 @@ export default function App() {
                 console.warn('[App] Background live sync notice:', err);
               }
             });
+        } else if (await getGuestMode()) {
+          if (isMounted) {
+            setIsGuest(true);
+          }
         }
       } catch (err) {
         if (__DEV__) {
@@ -630,6 +637,17 @@ export default function App() {
     setIsBookingModalVisible(true);
   };
 
+  const handleEnterGuest = () => {
+    setError('');
+    setIsGuest(true);
+    saveGuestMode(true);
+  };
+
+  // Shows the login form; the saved guest flag stays until a real login succeeds.
+  const handleGoToLogin = () => {
+    setIsGuest(false);
+  };
+
   const handleLogin = async () => {
     const cleanEmail = email.trim();
     const cleanPassword = password.trim();
@@ -662,6 +680,7 @@ export default function App() {
       }
       setIsAuthenticated(true);
       await saveUserSession(cleanEmail, cleanPassword, liveData);
+      await saveGuestMode(false);
     } catch (e: any) {
       setError(e.message || 'Credenziali non valide o errore di connessione');
     } finally {
@@ -672,6 +691,7 @@ export default function App() {
   const handleScraperLoginSuccess = () => {
     setIsLoading(false);
     setIsAuthenticated(true);
+    saveGuestMode(false);
     scraperRef.current?.fetchDashboard();
   };
 
@@ -748,8 +768,8 @@ export default function App() {
     );
   }
 
-  // If not logged in
-  if (!isAuthenticated) {
+  // If not logged in and not browsing as guest
+  if (!isAuthenticated && !isGuest) {
     return (
       <View style={[styles.loginSafeArea, { paddingTop: topInset }]}>
         <StatusBar barStyle="dark-content" backgroundColor="#F0F6FA" translucent={true} />
@@ -829,6 +849,16 @@ export default function App() {
                   )}
                 </TouchableOpacity>
               </View>
+
+              <TouchableOpacity
+                style={styles.guestLinkBtn}
+                onPress={handleEnterGuest}
+                disabled={isLoading}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+              >
+                <Text style={styles.guestLinkText}>Continua senza accedere</Text>
+              </TouchableOpacity>
 
               <Text style={styles.footerCopy}>CusApp • CUS Cosenza</Text>
             </View>
@@ -3101,6 +3131,18 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 12,
     marginTop: 30,
+  },
+  guestLinkBtn: {
+    alignSelf: 'center',
+    marginTop: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  guestLinkText: {
+    color: '#0284C7',
+    fontSize: 14,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 
   // Modal Styles (Modern GinniPAL Redesign)
