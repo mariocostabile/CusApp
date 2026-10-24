@@ -75,6 +75,13 @@ L'applicazione trasforma la gestione delle prenotazioni della palestra in un'esp
 - **Auto-Sync all'avvio**: Sincronizzazione trasparente in background di credenziali, abbonamento, prenotazioni e affluenza.
 - **Pull to Refresh**: Aggiornamento manuale con scorrimento verso il basso.
 
+### 👤 6. Modalità Ospite (senza account)
+- **Continua senza accedere**: Dalla schermata di login si entra nell'app senza credenziali GinniPAL.
+- **Funzioni disponibili**: Monitoraggio affluenza sala pesi completo (dati live, grafico orario, pull to refresh).
+- **Funzioni bloccate**: Profilo, certificato medico, abbonamento, prenotazione e cancellazione turni. Al loro posto compare una card *"Accedi per sbloccare tutto"*.
+- **Scelta ricordata**: Alla riapertura l'app torna direttamente in modalità ospite. Il flag viene cancellato solo con un login riuscito o con il logout.
+- **Sblocco**: Il pulsante *Accedi* (header o card) apre il login; dopo l'accesso tutte le funzioni sono disponibili.
+
 ---
 
 ## 🏛️ Architettura & Integrazione GinniPAL
