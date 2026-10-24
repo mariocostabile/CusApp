@@ -28,6 +28,8 @@ import {
   getUserSession,
   saveCachedDashboard,
   clearUserSession,
+  saveGuestMode,
+  getGuestMode,
 } from '../services/storageService';
 
 LogBox.ignoreLogs([
@@ -349,6 +351,7 @@ export default function App() {
   const AVAILABLE_DAYS = getDynamicBookingDays();
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -439,6 +442,10 @@ export default function App() {
                 console.warn('[App] Background live sync notice:', err);
               }
             });
+        } else if (await getGuestMode()) {
+          if (isMounted) {
+            setIsGuest(true);
+          }
         }
       } catch (err) {
         if (__DEV__) {
@@ -471,7 +478,7 @@ export default function App() {
     setIsRefreshing(true);
     try {
       const [liveGinnipal, snap] = await Promise.all([
-        fetchLiveGinnipalData(email, password),
+        isGuest ? Promise.resolve(null) : fetchLiveGinnipalData(email, password),
         fetchLiveGoogleCrowd(),
       ]);
       if (liveGinnipal && liveGinnipal.name) {
@@ -630,6 +637,17 @@ export default function App() {
     setIsBookingModalVisible(true);
   };
 
+  const handleEnterGuest = () => {
+    setError('');
+    setIsGuest(true);
+    saveGuestMode(true);
+  };
+
+  // Shows the login form; the saved guest flag stays until a real login succeeds.
+  const handleGoToLogin = () => {
+    setIsGuest(false);
+  };
+
   const handleLogin = async () => {
     const cleanEmail = email.trim();
     const cleanPassword = password.trim();
@@ -662,6 +680,7 @@ export default function App() {
       }
       setIsAuthenticated(true);
       await saveUserSession(cleanEmail, cleanPassword, liveData);
+      await saveGuestMode(false);
     } catch (e: any) {
       setError(e.message || 'Credenziali non valide o errore di connessione');
     } finally {
@@ -672,6 +691,7 @@ export default function App() {
   const handleScraperLoginSuccess = () => {
     setIsLoading(false);
     setIsAuthenticated(true);
+    saveGuestMode(false);
     scraperRef.current?.fetchDashboard();
   };
 
@@ -748,8 +768,8 @@ export default function App() {
     );
   }
 
-  // If not logged in
-  if (!isAuthenticated) {
+  // If not logged in and not browsing as guest
+  if (!isAuthenticated && !isGuest) {
     return (
       <View style={[styles.loginSafeArea, { paddingTop: topInset }]}>
         <StatusBar barStyle="dark-content" backgroundColor="#F0F6FA" translucent={true} />
@@ -830,6 +850,16 @@ export default function App() {
                 </TouchableOpacity>
               </View>
 
+              <TouchableOpacity
+                style={styles.guestLinkBtn}
+                onPress={handleEnterGuest}
+                disabled={isLoading}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+              >
+                <Text style={styles.guestLinkText}>Continua senza accedere</Text>
+              </TouchableOpacity>
+
               <Text style={styles.footerCopy}>CusApp • CUS Cosenza</Text>
             </View>
           </ScrollView>
@@ -869,10 +899,10 @@ export default function App() {
         </View>
         <TouchableOpacity
           style={styles.logoutBtn}
-          onPress={handleLogout}
+          onPress={isGuest ? handleGoToLogin : handleLogout}
           activeOpacity={0.7}
         >
-          <Text style={styles.logoutBtnText}>Esci</Text>
+          <Text style={styles.logoutBtnText}>{isGuest ? 'Accedi' : 'Esci'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -889,6 +919,29 @@ export default function App() {
           />
         }
       >
+        {/* Guest Mode: Login teaser replacing personal cards */}
+        {isGuest && (
+          <View style={styles.card}>
+            <Text style={styles.cardSubHeader}>MODALITÀ OSPITE</Text>
+            <Text style={styles.cardMainTitle}>Accedi per sbloccare tutto</Text>
+            <View style={styles.guestPerksList}>
+              <Text style={styles.guestPerk}>• Ingressi residui e scadenza dell&apos;abbonamento</Text>
+              <Text style={styles.guestPerk}>• Prenotazione dei turni in pochi tap</Text>
+              <Text style={styles.guestPerk}>• Cancellazione con countdown fino a 1 ora prima</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.bookActionBtn}
+              onPress={handleGoToLogin}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+            >
+              <Text style={styles.bookActionBtnText}>ACCEDI CON IL TUO ACCOUNT</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {!isGuest && (
+        <>
         {/* User Welcome Card */}
         {(() => {
           const displayName = formatFirstAndLastName(dashboardData.name);
@@ -915,18 +968,30 @@ export default function App() {
         {/* Medical Certificate Banner */}
         <View style={styles.certCard}>
           <View style={styles.certIconContainer}>
-            <Text style={styles.certIcon}>🛡️</Text>
+            <Text style={styles.certIcon}>{dashboardData.medicalCertExpiry ? '🛡️' : '⚠️'}</Text>
           </View>
           <View style={styles.certContent}>
             <View style={styles.certHeaderRow}>
               <Text style={styles.certTitle}>Certificato Medico</Text>
-              <View style={styles.activeTag}>
-                <Text style={styles.activeTagText}>VALIDO</Text>
-              </View>
+              {dashboardData.medicalCertExpiry ? (
+                <View style={styles.activeTag}>
+                  <Text style={styles.activeTagText}>VALIDO</Text>
+                </View>
+              ) : (
+                <View style={[styles.activeTag, { backgroundColor: '#FEF3C7' }]}>
+                  <Text style={[styles.activeTagText, { color: '#B45309' }]}>DA PRESENTARE</Text>
+                </View>
+              )}
             </View>
-            <Text style={styles.certDetails}>
-              Scadenza: <Text style={styles.boldText}>{dashboardData.medicalCertExpiry}</Text> • Non Agonistica
-            </Text>
+            {dashboardData.medicalCertExpiry ? (
+              <Text style={styles.certDetails}>
+                Scadenza: <Text style={styles.boldText}>{dashboardData.medicalCertExpiry}</Text> • Non Agonistica
+              </Text>
+            ) : (
+              <Text style={styles.certDetails}>
+                Il certificato medico non è ancora stato registrato sul portale CUS.
+              </Text>
+            )}
           </View>
         </View>
 
@@ -1076,6 +1141,9 @@ export default function App() {
             })
           )}
         </View>
+
+        </>
+        )}
 
         {/* 3. Scheda Affluenza: Native In-App Real-Time Crowd Analytics Card */}
         <View style={styles.card}>
@@ -1335,14 +1403,7 @@ export default function App() {
           )}
         </View>
 
-        {/* University Info Card */}
-        <View style={styles.uniCard}>
-          <Text style={styles.uniTitle}>Convenzione Studente</Text>
-          <Text style={styles.uniText}>
-            Università della Calabria • Ingegneria Informatica (DIMES)
-          </Text>
-          <Text style={styles.uniMatricola}>Matricola: 290949</Text>
-        </View>
+
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -2211,6 +2272,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0F172A',
   },
+  guestPerksList: {
+    marginTop: 12,
+    marginBottom: 18,
+    gap: 6,
+  },
+  guestPerk: {
+    fontSize: 14,
+    color: '#334155',
+    lineHeight: 20,
+  },
   cancelRuleNotice: {
     fontSize: 11,
     color: '#64748B',
@@ -2849,35 +2920,36 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
   },
   cancelResBtn: {
-    paddingVertical: 7,
+    paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     backgroundColor: '#FEE2E2',
     borderWidth: 1,
     borderColor: '#FECACA',
+    width: '100%',
+    alignItems: 'center',
   },
   cancelResBtnText: {
     color: '#DC2626',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
+    textAlign: 'center',
   },
   cancelResBtnLoading: {
     backgroundColor: '#FEF2F2',
     borderColor: '#FCA5A5',
-    paddingHorizontal: 14,
   },
   cancelLoadingInline: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
   },
   cancelResBtnLoadingText: {
     color: '#DC2626',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
   },
 
@@ -3095,6 +3167,18 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 12,
     marginTop: 30,
+  },
+  guestLinkBtn: {
+    alignSelf: 'center',
+    marginTop: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  guestLinkText: {
+    color: '#0284C7',
+    fontSize: 14,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 
   // Modal Styles (Modern GinniPAL Redesign)
