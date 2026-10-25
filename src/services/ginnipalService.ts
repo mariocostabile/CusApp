@@ -5,26 +5,13 @@
  * slot booking, and cancellations in real time — both via dev bridge and natively on mobile.
  */
 
-import { Platform, NativeModules } from 'react-native';
-import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-function getDevServerBaseUrl(): string {
-  if (Platform.OS === 'web') {
-    return '';
-  }
-  const hostUri = Constants.expoConfig?.hostUri;
-  if (hostUri) {
-    const host = hostUri.split('/')[0];
-    return `http://${host}`;
-  }
-  const scriptURL = (NativeModules as any)?.SourceCode?.scriptURL;
-  if (scriptURL) {
-    try {
-      const parsed = new URL(scriptURL);
-      return `${parsed.protocol}//${parsed.host}`;
-    } catch {}
-  }
-  return '';
+// Native apps call GinniPAL directly over HTTPS. The Metro bridge exists only to get past
+// GinniPAL's CORS on web, so it is same-origin there and never receives credentials over
+// cleartext HTTP from a phone (LAN or Expo tunnel). null = no bridge.
+function getDevServerBaseUrl(): string | null {
+  return Platform.OS === 'web' ? '' : null;
 }
 
 export interface DashboardData {
@@ -265,8 +252,11 @@ async function initSubForm(
 ): Promise<{ subFormKey: string; initControls: any; subInitControls: any }> {
   // 3. GET ExtMain.aspx with robust URL normalization
   let step3Url: string;
-  if (rawRedirect.startsWith('http://') || rawRedirect.startsWith('https://')) {
+  if (rawRedirect.startsWith('https://ginnipal.it/')) {
     step3Url = rawRedirect.split('#')[0];
+  } else if (/^[a-z][a-z0-9+.-]*:|^\/\//i.test(rawRedirect)) {
+    // The jar's session cookies go with this request: never follow a redirect off GinniPAL.
+    throw new Error('Redirect inatteso dal server GinniPAL');
   } else {
     const pathNoHash = rawRedirect.split('#')[0].replace(/^\/+/, '');
     const cleanPath = pathNoHash.startsWith('CusCosenza/')
@@ -812,7 +802,7 @@ export async function fetchLiveGinnipalData(
   password: string = DEFAULT_PASSWORD
 ): Promise<DashboardData> {
   const devOrigin = getDevServerBaseUrl();
-  if (devOrigin) {
+  if (devOrigin !== null) {
     try {
       const proxyRes = await fetch(`${devOrigin}/api/ginnipal`, {
         method: 'POST',
@@ -851,7 +841,7 @@ export async function bookLiveReservation(
   slot: string = ''
 ): Promise<DashboardData> {
   const devOrigin = getDevServerBaseUrl();
-  if (devOrigin) {
+  if (devOrigin !== null) {
     try {
       const res = await fetch(`${devOrigin}/api/ginnipal/book`, {
         method: 'POST',
@@ -882,7 +872,7 @@ export async function cancelLiveReservation(
   reservationId: string = ''
 ): Promise<DashboardData> {
   const devOrigin = getDevServerBaseUrl();
-  if (devOrigin) {
+  if (devOrigin !== null) {
     try {
       const res = await fetch(`${devOrigin}/api/ginnipal/cancel`, {
         method: 'POST',
