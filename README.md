@@ -117,9 +117,7 @@ CusApp implementa un'architettura a due livelli:
    - Gestisce la sessione autenticata e il parsing semantico della dashboard, della tabella abbonamenti e delle prenotazioni esistenti.
    - Effettua la sottomissione dei comandi di prenotazione turno e cancellazione con validazione della risposta del server.
 2. **Proxy Metro (`metro.config.js`)**:
-   - Fornisce middleware integrato per instradare le richieste API durante lo sviluppo ed evitare problemi di CORS o restrizioni SSL/cookie sui dispositivi mobili.
-3. **Scraper Fallback (`GinnipalScraper.tsx`)**:
-   - WebView invisibile integrata come meccanismo alternativo di scraping resiliente nel caso di variazioni dei formati ASP.NET.
+   - Fornisce middleware integrato per instradare le richieste API durante lo sviluppo **su web**, dove il CORS di GinniPAL blocca le chiamate dirette. Su Android/iOS l'app chiama sempre GinniPAL direttamente in HTTPS.
 
 ---
 
@@ -191,7 +189,7 @@ L'applicazione rispetta fedelmente le policy e i vincoli imposti dal centro spor
 - **Routing**: [Expo Router v4](https://docs.expo.dev/router/introduction/) (File-based Routing)
 - **Linguaggio**: [TypeScript 5.x](https://www.typescriptlang.org/)
 - **UI & Animations**: React Native Animated & Reanimated
-- **Webview & Networking**: `react-native-webview`, Node.js HTTPS client con proxy Metro
+- **Networking**: fetch HTTPS diretto, Node.js HTTPS client con proxy Metro (solo web/dev)
 - **Safe Area & Gestures**: `react-native-safe-area-context`, `react-native-gesture-handler`
 
 ---
@@ -212,7 +210,6 @@ CusApp/
 │   │   ├── _layout.tsx          # Root layout e configurazione navigazione
 │   │   └── index.tsx            # Schermata principale (Dashboard, Turni, Affluenza, Disdette)
 │   ├── components/              # Componenti modulari dell'interfaccia
-│   │   ├── GinnipalScraper.tsx  # Componente WebView per scraping di fallback
 │   │   ├── animated-icon.tsx    # Icone animate con Reanimated
 │   │   └── ...
 │   ├── constants/               # Costanti dell'app, temi e colori

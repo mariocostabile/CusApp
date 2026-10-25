@@ -16,12 +16,12 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GinnipalScraper, GinnipalScraperRef, DashboardData } from '../components/GinnipalScraper';
 import { fetchLiveGoogleCrowd, BASELINE_WEEKLY, getCrowdComparisonLabel } from '../services/googleCrowdService';
 import {
   fetchLiveGinnipalData,
   bookLiveReservation,
   cancelLiveReservation,
+  DashboardData,
 } from '../services/ginnipalService';
 import {
   saveUserSession,
@@ -345,8 +345,6 @@ function formatFirstAndLastName(fullName: string): string {
 export default function App() {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 0);
-
-  const scraperRef = useRef<GinnipalScraperRef>(null);
 
   const AVAILABLE_DAYS = getDynamicBookingDays();
 
@@ -688,21 +686,6 @@ export default function App() {
     }
   };
 
-  const handleScraperLoginSuccess = () => {
-    setIsLoading(false);
-    setIsAuthenticated(true);
-    saveGuestMode(false);
-    scraperRef.current?.fetchDashboard();
-  };
-
-  const handleScraperDashboardData = (data: DashboardData) => {
-    if (data && data.name) {
-      setDashboardData(data);
-      saveCachedDashboard(data);
-    }
-  };
-
-
   const handleConfirmBooking = async () => {
     if (!hasAnyBookableSlot || !isSelectedSlotBookable) {
       Alert.alert('Turno non disponibile', 'Seleziona una fascia oraria disponibile per procedere.');
@@ -864,20 +847,6 @@ export default function App() {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-
-        <GinnipalScraper
-          ref={scraperRef}
-          onLoginSuccess={handleScraperLoginSuccess}
-          onLoginError={(err) => {
-            setIsLoading(false);
-            setError(err);
-          }}
-          onDashboardData={handleScraperDashboardData}
-          onBookingSuccess={() => {}}
-          onBookingError={(err) => Alert.alert('Errore Prenotazione', err)}
-          onCancelSuccess={() => {}}
-          onCancelError={(err) => Alert.alert('Errore Annullamento', err)}
-        />
       </View>
     );
   }
@@ -2034,16 +2003,6 @@ export default function App() {
           </View>
         </View>
       </Modal>
-      <GinnipalScraper
-        ref={scraperRef}
-        onLoginSuccess={handleScraperLoginSuccess}
-        onLoginError={(err) => Alert.alert('Errore Login', err)}
-        onDashboardData={handleScraperDashboardData}
-        onBookingSuccess={() => {}}
-        onBookingError={(err) => Alert.alert('Errore Prenotazione', err)}
-        onCancelSuccess={() => {}}
-        onCancelError={(err) => Alert.alert('Errore Annullamento', err)}
-      />
     </View>
   );
 }
