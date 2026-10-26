@@ -128,3 +128,7 @@ $RECYCLE.BIN/
 .claude/
 CLAUDE.md
 AGENTS.md
+
+# Report di sicurezza locali (non pubblicare)
+SECURITY-AUDIT.md
+SECURITY-FIXES.md
