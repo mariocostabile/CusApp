@@ -5,6 +5,24 @@ const {
   cancelBookingLiveGinnipal,
 } = require('./src/services/ginnipalNodeFetcher');
 
+// Credentials fit well under this; caps memory when Metro is exposed through a tunnel.
+const MAX_BODY_BYTES = 10_000;
+
+// Exact hostname match: a substring check let origins like localhost.evil.com through.
+function isLocalOrigin(origin) {
+  try {
+    const { hostname } = new URL(origin);
+    return (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      /^10\.\d+\.\d+\.\d+$/.test(hostname) ||
+      /^192\.168\.\d+\.\d+$/.test(hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 const config = getDefaultConfig(__dirname);
 
 const originalEnhanceMiddleware = config.server.enhanceMiddleware;
@@ -20,12 +38,7 @@ config.server = {
       // Proxy endpoints to GinniPAL
       if (req.url.startsWith('/api/ginnipal')) {
         const origin = req.headers['origin'] || '';
-        const isLocal =
-          !origin ||
-          origin.includes('localhost') ||
-          origin.includes('127.0.0.1') ||
-          origin.includes('192.168.') ||
-          origin.includes('10.');
+        const isLocal = !origin || isLocalOrigin(origin);
         res.setHeader('Access-Control-Allow-Origin', isLocal ? (origin || '*') : 'null');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -39,6 +52,11 @@ config.server = {
         let bodyData = '';
         req.on('data', (chunk) => {
           bodyData += chunk;
+          if (bodyData.length > MAX_BODY_BYTES) {
+            res.writeHead(413);
+            res.end();
+            req.destroy();
+          }
         });
 
         req.on('end', () => {
