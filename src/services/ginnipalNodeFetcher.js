@@ -343,13 +343,11 @@ async function bookSlotLiveGinnipal(
   const dateChangeData = JSON.parse(dateChangeRes.body);
   const slotItems = dateChangeData.actions?.[0]?.controls?.edOrarioPrenotato?.items || [];
   
-  let matchedSlot = slotItems.find((item) => item.label && (item.label.trim() === timeSlot.trim() || item.label.startsWith(timeSlot.split(' - ')[0])));
-  if (!matchedSlot && slotItems.length > 0) {
-    matchedSlot = slotItems.find((item) => item.value !== '-1' && item.label);
-  }
+  // GinniPAL omits full slots from the list: never fall back to another slot.
+  const matchedSlot = slotItems.find((item) => item.label && (item.label.trim() === timeSlot.trim() || item.label.startsWith(timeSlot.split(' - ')[0])));
 
   if (!matchedSlot || matchedSlot.value === '-1') {
-    throw new Error(`Orario ${timeSlot} non disponibile per il ${dateStr} (posti esauriti o turno non attivo)`);
+    throw new Error(`Posti esauriti per il turno ${timeSlot} del ${dateStr}`);
   }
 
   const slotChangePayload = new URLSearchParams({

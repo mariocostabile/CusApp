@@ -9,7 +9,6 @@ import {
   ScrollView,
   StatusBar,
   Modal,
-  Alert,
   Platform,
   RefreshControl,
   LogBox,
@@ -31,6 +30,7 @@ import {
   saveGuestMode,
   getGuestMode,
 } from '../services/storageService';
+import { AppDialog, type AppDialogAction } from '../components/app-dialog';
 
 LogBox.ignoreLogs([
   'Cannot connect to Expo CLI',
@@ -362,12 +362,14 @@ export default function App() {
   const [selectedSlot, setSelectedSlot] = useState('');
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
   const [cancellingResId, setCancellingResId] = useState<string | null>(null);
-  const [confirmCancelModalData, setConfirmCancelModalData] = useState<{
-    id: string;
-    date: string;
-    time: string;
+  const [dialog, setDialog] = useState<{
     title: string;
+    message: React.ReactNode;
+    actions: AppDialogAction[];
   } | null>(null);
+
+  const showInfoDialog = (title: string, message: string) =>
+    setDialog({ title, message, actions: [{ label: 'Ho capito', variant: 'secondary' }] });
 
   // Live timer tick every second for real-time countdown
   const [nowTime, setNowTime] = useState(Date.now());
@@ -688,7 +690,7 @@ export default function App() {
 
   const handleConfirmBooking = async () => {
     if (!hasAnyBookableSlot || !isSelectedSlotBookable) {
-      Alert.alert('Turno non disponibile', 'Seleziona una fascia oraria disponibile per procedere.');
+      showInfoDialog('Turno non disponibile', 'Seleziona una fascia oraria disponibile per procedere.');
       return;
     }
     setIsSubmittingBooking(true);
@@ -701,14 +703,27 @@ export default function App() {
       }
       setIsBookingModalVisible(false);
     } catch (err: any) {
-      Alert.alert('Errore Prenotazione', err.message || 'Si è verificato un errore durante la prenotazione.');
+      showInfoDialog('Errore Prenotazione', err.message || 'Si è verificato un errore durante la prenotazione.');
     } finally {
       setIsSubmittingBooking(false);
     }
   };
 
   const handlePromptCancel = (res: { id: string; date: string; time: string; title: string }) => {
-    setConfirmCancelModalData(res);
+    setDialog({
+      title: 'Annulla prenotazione',
+      message: (
+        <>
+          Vuoi annullare la prenotazione per il turno del{' '}
+          <Text style={styles.boldText}>{res.date}</Text> alle ore{' '}
+          <Text style={styles.boldText}>{res.time}</Text>?
+        </>
+      ),
+      actions: [
+        { label: 'Annulla prenotazione', variant: 'danger', onPress: () => executeCancelReservation(res.id) },
+        { label: 'Torna indietro', variant: 'secondary' },
+      ],
+    });
   };
 
   const executeCancelReservation = async (resId: string) => {
@@ -718,27 +733,31 @@ export default function App() {
       setDashboardData(updatedData);
       saveCachedDashboard(updatedData);
     } catch (err: any) {
-      Alert.alert('Errore Annullamento', err.message || 'Impossibile annullare la prenotazione.');
+      showInfoDialog('Errore Annullamento', err.message || 'Impossibile annullare la prenotazione.');
     } finally {
       setCancellingResId(null);
     }
   };
 
   const handleLogout = () => {
-    Alert.alert('Disconnetti Profilo', 'Vuoi uscire dal tuo account CusApp?', [
-      { text: 'Annulla', style: 'cancel' },
-      {
-        text: 'Disconnetti',
-        style: 'destructive',
-        onPress: async () => {
-          await clearUserSession();
-          setIsAuthenticated(false);
-          setEmail('');
-          setPassword('');
-          setDashboardData(initialData);
+    setDialog({
+      title: 'Disconnetti Profilo',
+      message: 'Vuoi uscire dal tuo account CusApp?',
+      actions: [
+        {
+          label: 'Disconnetti',
+          variant: 'danger',
+          onPress: async () => {
+            await clearUserSession();
+            setIsAuthenticated(false);
+            setEmail('');
+            setPassword('');
+            setDashboardData(initialData);
+          },
         },
-      },
-    ]);
+        { label: 'Annulla', variant: 'secondary' },
+      ],
+    });
   };
 
   // Session restoring spinner
@@ -1954,55 +1973,13 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* Custom CusApp Style Modal for Cancel Confirmation */}
-      <Modal
-        visible={confirmCancelModalData !== null}
-        transparent
-        animationType="fade"
-        statusBarTranslucent={true}
-        navigationBarTranslucent={true}
-        onRequestClose={() => setConfirmCancelModalData(null)}
-      >
-        <View style={styles.customModalBackdrop}>
-          <View style={styles.customConfirmCard}>
-            <View style={styles.confirmIconCircle}>
-              <Text style={styles.confirmIconEmoji}>⚠️</Text>
-            </View>
-
-            <Text style={styles.customConfirmTitle}>Annulla prenotazione</Text>
-
-            <Text style={styles.customConfirmDesc}>
-              Vuoi annullare la prenotazione per il turno del{' '}
-              <Text style={styles.boldText}>{confirmCancelModalData?.date}</Text> alle ore{' '}
-              <Text style={styles.boldText}>{confirmCancelModalData?.time}</Text>?
-            </Text>
-
-            <View style={styles.customConfirmActions}>
-              <TouchableOpacity
-                style={styles.confirmCancelBtn}
-                onPress={() => {
-                  const id = confirmCancelModalData?.id;
-                  setConfirmCancelModalData(null);
-                  if (id) {
-                    executeCancelReservation(id);
-                  }
-                }}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.confirmCancelBtnText}>Annulla prenotazione</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.confirmKeepBtn}
-                onPress={() => setConfirmCancelModalData(null)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.confirmKeepBtnText}>Torna indietro</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <AppDialog
+        visible={dialog !== null}
+        title={dialog?.title ?? ''}
+        message={dialog?.message}
+        actions={dialog?.actions ?? []}
+        onClose={() => setDialog(null)}
+      />
     </View>
   );
 }
@@ -2909,90 +2886,6 @@ const styles = StyleSheet.create({
   cancelResBtnLoadingText: {
     color: '#DC2626',
     fontSize: 13,
-    fontWeight: '700',
-  },
-
-  // Custom Confirmation Modal (CusApp Style)
-  customModalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  customConfirmCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-    maxWidth: 350,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  confirmIconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FEF2F2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#FEE2E2',
-  },
-  confirmIconEmoji: {
-    fontSize: 26,
-  },
-  customConfirmTitle: {
-    fontSize: 19,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  customConfirmDesc: {
-    fontSize: 13,
-    color: '#475569',
-    textAlign: 'center',
-    lineHeight: 19,
-    marginBottom: 20,
-  },
-  customConfirmActions: {
-    width: '100%',
-    gap: 10,
-  },
-  confirmCancelBtn: {
-    backgroundColor: '#DC2626',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  confirmCancelBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
-  confirmKeepBtn: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    paddingVertical: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  confirmKeepBtnText: {
-    color: '#475569',
-    fontSize: 14,
     fontWeight: '700',
   },
 
