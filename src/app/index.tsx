@@ -1275,9 +1275,6 @@ export default function App() {
                       <Text style={[styles.crowdNowLevel, { color: liveCrowdItem.color }]}>
                         {liveCrowdItem.level.toUpperCase()}
                       </Text>
-                      {!!liveCrowdItem.description && (
-                        <Text style={styles.crowdNowDesc}>{liveCrowdItem.description}</Text>
-                      )}
                       <Text style={styles.crowdNowPercent}>~{liveCrowdItem.percent}% di affluenza</Text>
                       {liveCrowdItem.isLive && (
                         <Text
@@ -2512,12 +2509,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: 0.5,
-  },
-  crowdNowDesc: {
-    fontSize: 13,
-    color: '#334155',
-    textAlign: 'center',
-    marginTop: 2,
   },
   crowdNowPercent: {
     fontSize: 12,
