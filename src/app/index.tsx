@@ -15,7 +15,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchLiveGoogleCrowd, BASELINE_WEEKLY, getCrowdComparisonLabel } from '../services/googleCrowdService';
+import { fetchLiveGoogleCrowd, BASELINE_WEEKLY } from '../services/googleCrowdService';
 import { getExtremeRange } from '../services/crowdInsights';
 import {
   fetchLiveGinnipalData,
@@ -81,8 +81,6 @@ const SATURDAY_BOOKING_SLOTS: BookingSlotOption[] = [
   { slot: '10:00 - 12:00', category: 'mattina', periodLabel: '1° Turno Mattina' },
   { slot: '12:00 - 14:00', category: 'mattina', periodLabel: '2° Turno Mattina' },
 ];
-
-const TIME_SLOTS = WEEKDAY_BOOKING_SLOTS;
 
 export interface CrowdHourItem {
   hour: number;
@@ -209,12 +207,6 @@ const isSlotBookable = (slotStr: string, isToday: boolean, currentHour: number):
   const startHourStr = slotStr.split(' - ')[0]?.split(':')[0];
   const startHour = parseInt(startHourStr || '0', 10);
   return currentHour < startHour;
-};
-
-const getFirstAvailableSlot = (isSaturday: boolean, isToday: boolean, currentHour: number): string => {
-  const slots = isSaturday ? SATURDAY_BOOKING_SLOTS : WEEKDAY_BOOKING_SLOTS;
-  const avail = slots.find((s) => isSlotBookable(s.slot, isToday, currentHour));
-  return avail ? avail.slot : (slots[0]?.slot || '18:00 - 20:00');
 };
 
 // Helper to calculate cancellation window: strictly 1 hour before session start!
@@ -373,7 +365,7 @@ export default function App() {
     setDialog({ title, message, actions: [{ label: 'Ho capito', variant: 'secondary' }] });
 
   // Live timer tick every second for real-time countdown
-  const [nowTime, setNowTime] = useState(Date.now());
+  const [nowTime, setNowTime] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => {
       setNowTime(Date.now());
@@ -1437,7 +1429,7 @@ export default function App() {
                 <Text style={styles.bookingRuleIcon}>ℹ️</Text>
                 <View style={{ flex: 1, gap: 5 }}>
                   <Text style={styles.bookingRuleText}>
-                    Le prenotazioni possono essere annullate fino a 1 ora prima dell'inizio del turno. L'ingresso viene scalato al tornello.
+                    Le prenotazioni possono essere annullate fino a 1 ora prima dell’inizio del turno. L’ingresso viene scalato al tornello.
                   </Text>
                   <Text style={[styles.bookingRuleText, { color: '#0369A1' }]}>
                     Le pillole di affluenza dei turni sono stime basate sulle medie storiche di Google Maps. Lo stato in tempo reale (più o meno affollato del solito) si trova nella scheda monitoraggio in Home, quando disponibile.
@@ -1770,7 +1762,6 @@ export default function App() {
                         const isAlreadyBooked = isSlotAlreadyBookedByUser(item.slot, selectedDay);
                         const isBookable = isSlotBookable(item.slot, isSelectedToday, currentHour) && !isAlreadyBooked;
                         const isSelected = selectedSlot === item.slot && isBookable;
-                        const isPeak = item.slot === '18:00 - 20:00';
                         return (
                           <TouchableOpacity
                             key={item.slot}
