@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchLiveGoogleCrowd, BASELINE_WEEKLY, getCrowdComparisonLabel } from '../services/googleCrowdService';
+import { getTrendText, getBestTimeText, getExtremeRange } from '../services/crowdInsights';
 import {
   fetchLiveGinnipalData,
   bookLiveReservation,
@@ -519,6 +520,10 @@ export default function App() {
     activeCrowdList.find((h) => h.hour === currentHour) ||
     activeCrowdList.find((h) => Math.abs(h.hour - currentHour) <= 1) ||
     activeCrowdList[0];
+  const crowdTrendText = liveCrowdItem ? getTrendText(activeCrowdList, liveCrowdItem) : '';
+  const crowdBestTimeText = liveCrowdItem ? getBestTimeText(activeCrowdList, liveCrowdItem) : '';
+  const dayPeak = getExtremeRange(activeCrowdList, 'max');
+  const dayCalm = getExtremeRange(activeCrowdList, 'min');
 
   const selectedDayObj =
     AVAILABLE_DAYS.find((d) => d.date === selectedDay) || AVAILABLE_DAYS[0] || {
@@ -1269,49 +1274,58 @@ export default function App() {
                     </View>
 
                     <View style={styles.liveStatusRowCentered}>
-                      <Text style={styles.liveStatusSubtitle}>
-                        {liveCrowdItem.isLive ? 'In tempo reale:' : "Stima per quest'ora:"}
+                      <Text style={[styles.crowdNowLevel, { color: liveCrowdItem.color }]}>
+                        {liveCrowdItem.level.toUpperCase()}
                       </Text>
-                      <Text
-                        style={[
-                          styles.liveStatusValue,
-                          {
-                            color: !liveCrowdItem.isLive
-                              ? liveCrowdItem.color
-                              : /Più/.test(liveCrowdItem.comparisonStatus || '')
-                              ? '#EF4444'
-                              : /Meno/.test(liveCrowdItem.comparisonStatus || '')
-                              ? '#10B981'
-                              : '#64748B',
-                          },
-                        ]}
-                      >
-                        {liveCrowdItem.isLive
-                          ? liveCrowdItem.comparisonStatus
-                          : `${liveCrowdItem.level} • ~${liveCrowdItem.percent}%`}
-                      </Text>
+                      {!!liveCrowdItem.description && (
+                        <Text style={styles.crowdNowDesc}>{liveCrowdItem.description}</Text>
+                      )}
+                      <Text style={styles.crowdNowPercent}>~{liveCrowdItem.percent}% di affluenza</Text>
+                      {liveCrowdItem.isLive && (
+                        <Text
+                          style={[
+                            styles.crowdNowComparison,
+                            {
+                              color: /Più/.test(liveCrowdItem.comparisonStatus || '')
+                                ? '#EF4444'
+                                : /Meno/.test(liveCrowdItem.comparisonStatus || '')
+                                ? '#10B981'
+                                : '#64748B',
+                            },
+                          ]}
+                        >
+                          {liveCrowdItem.comparisonStatus}
+                        </Text>
+                      )}
                     </View>
 
-                    {/* Progress bars */}
-                    <View style={styles.comparisonContainer}>
-                      <View style={styles.comparisonBarGroup}>
-                        <View style={styles.comparisonBarLabelRow}>
-                          <Text style={styles.comparisonLabel} numberOfLines={1} ellipsizeMode="tail">
-                            Affluenza tipica {activeDayData.name} ({liveCrowdItem.label}):
-                          </Text>
-                          <Text style={[styles.comparisonValue, { color: '#64748B' }]}>
-                            ~{liveCrowdItem.typical}%
-                          </Text>
-                        </View>
-                        <View style={styles.comparisonBarTrack}>
-                          <View
-                            style={[
-                              styles.comparisonBarFill,
-                              { width: `${liveCrowdItem.typical}%`, backgroundColor: '#94A3B8' },
-                            ]}
-                          />
+                    {/* Typical-level bar only when live data differs from history */}
+                    {liveCrowdItem.isLive && (
+                      <View style={[styles.comparisonContainer, { marginBottom: 12 }]}>
+                        <View style={styles.comparisonBarGroup}>
+                          <View style={styles.comparisonBarLabelRow}>
+                            <Text style={styles.comparisonLabel} numberOfLines={1} ellipsizeMode="tail">
+                              Affluenza tipica {activeDayData.name} ({liveCrowdItem.label}):
+                            </Text>
+                            <Text style={[styles.comparisonValue, { color: '#64748B' }]}>
+                              ~{liveCrowdItem.typical}%
+                            </Text>
+                          </View>
+                          <View style={styles.comparisonBarTrack}>
+                            <View
+                              style={[
+                                styles.comparisonBarFill,
+                                { width: `${liveCrowdItem.typical}%`, backgroundColor: '#94A3B8' },
+                              ]}
+                            />
+                          </View>
                         </View>
                       </View>
+                    )}
+
+                    <View style={styles.crowdInsightsBox}>
+                      <Text style={styles.crowdInsightText}>{crowdTrendText}</Text>
+                      <Text style={styles.crowdInsightText}>{crowdBestTimeText}</Text>
                     </View>
                   </>
                 ) : (
@@ -1324,15 +1338,17 @@ export default function App() {
                       </View>
                       <Text style={styles.lastUpdateCentered}>Google Maps</Text>
                     </View>
-                    <View style={styles.liveStatusRowCentered}>
-                      <Text style={styles.liveStatusSubtitle}>Stima Tipica {activeDayData.name}:</Text>
-                      <Text style={[styles.liveStatusValue, { color: '#0284C7' }]}>
-                        Orario di punta: 18:00 - 20:30
-                      </Text>
-                    </View>
-                    <Text style={[styles.daySummaryDesc, { textAlign: 'center' }]}>
-                      Fasce consigliate e poco affollate: 10:00 - 15:00 (~15-25% di affluenza).
-                    </Text>
+                    {dayPeak && dayCalm && (
+                      <View style={styles.liveStatusRowCentered}>
+                        <Text style={styles.liveStatusSubtitle}>Stima Tipica {activeDayData.name}:</Text>
+                        <Text style={[styles.liveStatusValue, { color: '#0284C7' }]}>
+                          Picco: {dayPeak.range} (~{dayPeak.percent}%)
+                        </Text>
+                        <Text style={[styles.daySummaryDesc, { textAlign: 'center' }]}>
+                          Più calmo: {dayCalm.range} (~{dayCalm.percent}%)
+                        </Text>
+                      </View>
+                    )}
                   </>
                 )}
               </View>
@@ -2499,6 +2515,39 @@ const styles = StyleSheet.create({
   liveStatusValue: {
     fontSize: 17,
     fontWeight: '800',
+  },
+  crowdNowLevel: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  crowdNowDesc: {
+    fontSize: 13,
+    color: '#334155',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  crowdNowPercent: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  crowdNowComparison: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  crowdInsightsBox: {
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 10,
+  },
+  crowdInsightText: {
+    fontSize: 12.5,
+    color: '#334155',
+    fontWeight: '600',
   },
   livePillSmall: {
     backgroundColor: '#DCFCE7',
