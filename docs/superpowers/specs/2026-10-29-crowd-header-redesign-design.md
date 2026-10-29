@@ -40,7 +40,7 @@ Regole:
   - Freccia `↗` se `next.percent > current.percent`, `↘` se minore, `→` se uguale.
   - Testo: `{freccia} Alle {next.label}: {next.level} (~{next.percent}%)`.
   - Se non esiste ora successiva: `Chiude alle 22:00`.
-- **Consiglio**: tra gli item con `hour > liveCrowdItem.hour`, quello con `percent` minimo (a parità, il primo).
+- **Consiglio**: tra gli item con `hour > liveCrowdItem.hour`, quello con `percent` minimo (a parità, l'ora più vicina).
   - Se nessun item successivo o se `liveCrowdItem.percent <= min`: `⭐ Adesso è il momento migliore di oggi`.
   - Altrimenti: `⭐ Meglio oggi: {best.label} (~{best.percent}%)`.
 - **Dati live presenti** (`liveCrowdItem.isLive`): sotto la percentuale compare anche `comparisonStatus` ("Più/Meno affollato del solito", colori rosso/verde come oggi) e la barra grigia "Affluenza tipica … ~{typical}%" esistente.
@@ -50,13 +50,14 @@ Regole:
 
 - Pill e label "Google Maps" invariati.
 - Sostituire i testi fissi con valori calcolati da `activeCrowdList`:
-  - `Picco: {peak.label} (~{peak.percent}%)` — item con `percent` massimo (a parità, il primo).
-  - `Più calmo: {calm.label} (~{calm.percent}%)` — item con `percent` minimo (a parità, il primo).
+  - `Picco: {fascia} (~{max}%)` — fascia di ore consecutive con `percent` massimo.
+  - `Più calmo: {fascia} (~{min}%)` — fascia di ore consecutive con `percent` minimo.
+  - Fascia: parte dalla prima ora con quel valore e si estende alle ore immediatamente successive con lo stesso valore; formato `HH:00-HH:00` dove la fine è l'ultima ora + 1 (es. 10,11,12,13 → `10:00-14:00`). Ora singola → `HH:00`. Se il valore ricorre in fasce non consecutive, si mostra solo la prima.
 - Lista vuota: non mostrare le due righe.
 
 ## Implementazione
 
-- Una funzione pura in `index.tsx` (fuori dal componente), es. `getCrowdInsights(hours, currentHour)` → `{ next, best, peak, calm }`, con `next`/`best` relativi a `currentHour`, `peak`/`calm` sull'intera giornata. Nessun nuovo file, nessuna dipendenza.
+- Una funzione pura in `index.tsx` (fuori dal componente), es. `getCrowdInsights(hours, currentHour)` → `{ next, best, peak, calm }`, con `next`/`best` relativi a `currentHour`, `peak`/`calm` sull'intera giornata come `{ range: string, percent: number }`. Nessun nuovo file, nessuna dipendenza.
 - Nuovi stili nello `StyleSheet` esistente, coerenti con quelli attuali (`liveStatusValue`, `daySummaryDesc`). Rimuovere gli stili che restano inutilizzati.
 
 ## Verifica
