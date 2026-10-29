@@ -456,6 +456,9 @@ async function bookLiveReservationDirect(
   dateStr: string,
   timeSlot: string
 ): Promise<DashboardData> {
+  if (!dateStr.trim() || !timeSlot.trim()) {
+    throw new Error('Seleziona una data e un turno validi prima di prenotare.');
+  }
   const dateParts = dateStr.split('/');
   const targetDateIso =
     dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : dateStr;
@@ -705,6 +708,11 @@ async function bookLiveReservationDirect(
   return await refreshAfterAction(email, password, jar);
 }
 
+const CANCEL_NOT_FOUND_MESSAGE =
+  'Prenotazione non trovata su GinniPAL: nessuna prenotazione è stata annullata. Aggiorna i dati o procedi dal sito ginnipal.it.';
+const CANCEL_NOT_CONFIRMED_MESSAGE =
+  'GinniPAL non ha confermato l’annullamento: la prenotazione risulta ancora attiva. Riprova o procedi dal sito ginnipal.it.';
+
 /**
  * Direct HTTPS cancellation execution from mobile.
  */
@@ -716,14 +724,14 @@ async function cancelLiveReservationDirect(
   const jar: CookieJar = { list: [] };
   const { subFormKey, subInitControls } = await loginAndInitSubForm(email, password, jar);
 
-  let targetSuffix = '1';
-  const rowSuffixes = subInitControls.ctPrenotazioni?.rowSuffixes || ['1'];
-  for (const s of rowSuffixes) {
-    const rowHtml = subInitControls['stPrenotazione-' + s]?.html || '';
-    if (reservationId && rowHtml.includes(reservationId)) {
-      targetSuffix = s;
-      break;
-    }
+  // Exact match only: a wrong row would cancel a different booking of the same user.
+  const idPattern = new RegExp(`Prenotazione n\\.\\s*${reservationId}(?!\\d)`, 'i');
+  const rowSuffixes: string[] = subInitControls.ctPrenotazioni?.rowSuffixes || [];
+  const targetSuffix = /^\d+$/.test(reservationId)
+    ? rowSuffixes.find((s) => idPattern.test(decodeHtml(subInitControls['stPrenotazione-' + s]?.html || '')))
+    : undefined;
+  if (!targetSuffix) {
+    throw new Error(CANCEL_NOT_FOUND_MESSAGE);
   }
 
   // AnnullaPrenotazione request
@@ -786,7 +794,11 @@ async function cancelLiveReservationDirect(
     }
   }
 
-  return await refreshAfterAction(email, password, jar);
+  const refreshed = await refreshAfterAction(email, password, jar);
+  if (refreshed.reservations.some((r) => r.id === reservationId)) {
+    throw new Error(CANCEL_NOT_CONFIRMED_MESSAGE);
+  }
+  return refreshed;
 }
 
 /**

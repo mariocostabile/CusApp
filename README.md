@@ -67,7 +67,7 @@ L'applicazione trasforma la gestione delle prenotazioni della palestra in un'esp
 
 ### 📊 4. Monitoraggio Affluenza Sala Pesi (Crowd Analytics)
 - **Dati Live & Tipici**: Integrazione con Google Maps Popular Times per la palestra CUS Unical.
-- **Badge Live & Aggiornamento Orario**: Rilevamento in tempo reale della percentuale di occupazione rispetto alla media tipica.
+- **Badge Live & Aggiornamento Orario**: Quando Google fornisce il dato in tempo reale, la tab di oggi mostra *LIVE* e il confronto con la media tipica; altrimenti mostra *Aperto* e la stima statistica.
 - **Confronto Verbale Intelligente**: Notifiche semantiche (*"Consueto"*, *"Più affollato del solito"*, *"Meno affollato del solito"*).
 - **Grafico a Barre Orario Interattivo**: Visualizzazione intuitiva ora per ora (10:00 - 22:00) con doppio livello (livello abituale vs livello attuale).
 
@@ -343,7 +343,7 @@ L'APK compilato finale viene posizionato automaticamente in `dist-apk/CusCosenza
 
 - **Progetto Indipendente**: Questo progetto è un client non ufficiale sviluppato in via indipendente a supporto della comunità degli studenti e tesserati del CUS Cosenza / Università della Calabria.
 - **Marchi e Diritti**: I nomi *CUS Cosenza*, *GinniPAL*, *Paneura* e i relativi loghi sono di proprietà dei rispettivi detentori. L'applicazione non è affiliata né sponsorizzata formalmente da essi.
-- **Uso dei Dati**: Le credenziali di accesso sono utilizzate unicamente per interagire con i server di competenza del portale e non vengono salvate né condivise con server di terze parti.
+- **Uso dei Dati**: Le credenziali di accesso sono utilizzate unicamente per interagire con i server di competenza del portale e non vengono condivise con server di terze parti. Per mantenere l'accesso, email e password restano salvate solo sul dispositivo: la password nell'archivio sicuro del sistema (Android Keystore tramite SecureStore) e vengono cancellate con il logout.
 
 ---
 

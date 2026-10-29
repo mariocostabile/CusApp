@@ -342,6 +342,8 @@ export default function App() {
   const AVAILABLE_DAYS = getDynamicBookingDays();
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Bumped on logout so a startup sync still in flight cannot repopulate the old account's data.
+  const sessionGenRef = useRef(0);
   const [isGuest, setIsGuest] = useState(false);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -423,9 +425,10 @@ export default function App() {
           }
 
           // Background live sync to keep data fresh and update cache
+          const syncGen = sessionGenRef.current;
           fetchLiveGinnipalData(session.email, session.password)
             .then((liveGinnipal) => {
-              if (isMounted && liveGinnipal && liveGinnipal.name) {
+              if (isMounted && syncGen === sessionGenRef.current && liveGinnipal && liveGinnipal.name) {
                 setDashboardData(liveGinnipal);
                 saveCachedDashboard(liveGinnipal);
               }
@@ -746,6 +749,7 @@ export default function App() {
           label: 'Disconnetti',
           variant: 'danger',
           onPress: async () => {
+            sessionGenRef.current += 1;
             await clearUserSession();
             setIsAuthenticated(false);
             setEmail('');

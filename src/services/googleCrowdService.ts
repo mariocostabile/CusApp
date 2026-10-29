@@ -189,6 +189,29 @@ export function getCrowdLevelAndColor(percent: number): { level: string; color: 
   return { level: 'Molto Calmo', color: '#10B981' };
 }
 
+const isStr = (v: unknown) => typeof v === 'string';
+const isNum = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
+
+/** crowd_live.json comes from the network: reject it whole if any field the UI renders has the wrong type. */
+function isValidWeekly(weekly: any): weekly is Record<string, GoogleCrowdDay> {
+  if (!weekly || typeof weekly !== 'object') return false;
+  return Object.keys(BASELINE_WEEKLY).every((key) => {
+    const day = weekly[key];
+    return (
+      day && isStr(day.name) && isStr(day.short) && typeof day.isClosed === 'boolean' &&
+      (day.shiftsNotice === undefined || isStr(day.shiftsNotice)) &&
+      Array.isArray(day.hours) &&
+      day.hours.every(
+        (it: any) =>
+          it && isNum(it.hour) && isNum(it.percent) && isNum(it.typical) &&
+          isStr(it.label) && isStr(it.level) && isStr(it.comparisonStatus) &&
+          isStr(it.color) && /^#[0-9A-Fa-f]{6}$/.test(it.color) &&
+          (it.description === undefined || isStr(it.description))
+      )
+    );
+  });
+}
+
 async function loadLatestWeeklyDataset(): Promise<{
   weekly: Record<string, GoogleCrowdDay>;
   liveStatus?: string;
@@ -209,7 +232,7 @@ async function loadLatestWeeklyDataset(): Promise<{
       const res = await fetchWithTimeout(url, 3500);
       if (res.ok) {
         const json = await res.json();
-        if (json && json.weeklyData && typeof json.weeklyData === 'object') {
+        if (isValidWeekly(json?.weeklyData)) {
           AsyncStorage.setItem(CROWD_CACHE_KEY, JSON.stringify(json)).catch(() => {});
           return {
             weekly: json.weeklyData,
@@ -229,7 +252,7 @@ async function loadLatestWeeklyDataset(): Promise<{
     const cached = await AsyncStorage.getItem(CROWD_CACHE_KEY);
     if (cached) {
       const json = JSON.parse(cached);
-      if (json && json.weeklyData && typeof json.weeklyData === 'object') {
+      if (isValidWeekly(json?.weeklyData)) {
         return {
           weekly: json.weeklyData,
           liveStatus: json.comparisonStatus,

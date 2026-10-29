@@ -215,6 +215,9 @@ async function bookSlotLiveGinnipal(
   dateStr = '',
   timeSlot = ''
 ) {
+  if (!String(dateStr).trim() || !String(timeSlot).trim()) {
+    throw new Error('Seleziona una data e un turno validi prima di prenotare.');
+  }
   const dateParts = dateStr.split('/');
   const targetDateIso = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : dateStr;
 
@@ -508,14 +511,15 @@ async function cancelBookingLiveGinnipal(
   const subData = JSON.parse(subRes.body.replace(/^var initialData\s*=\s*/, '').replace(/;$/, ''));
   const controls = subData.actions?.[0]?.controls || {};
 
-  let targetSuffix = '1';
-  const rowSuffixes = controls.ctPrenotazioni?.rowSuffixes || ['1'];
-  for (const s of rowSuffixes) {
-    const rowHtml = controls['stPrenotazione-' + s]?.html || '';
-    if (reservationId && rowHtml.includes(reservationId)) {
-      targetSuffix = s;
-      break;
-    }
+  // Exact match only: a wrong row would cancel a different booking of the same user.
+  const id = String(reservationId || '');
+  const idPattern = new RegExp(`Prenotazione n\\.\\s*${id}(?!\\d)`, 'i');
+  const rowSuffixes = controls.ctPrenotazioni?.rowSuffixes || [];
+  const targetSuffix = /^\d+$/.test(id)
+    ? rowSuffixes.find((s) => idPattern.test(decodeHtml(controls['stPrenotazione-' + s]?.html || '')))
+    : undefined;
+  if (!targetSuffix) {
+    throw new Error('Prenotazione non trovata su GinniPAL: nessuna prenotazione è stata annullata. Aggiorna i dati o procedi dal sito ginnipal.it.');
   }
 
   const cancelPayload = new URLSearchParams({

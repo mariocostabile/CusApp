@@ -169,12 +169,19 @@ export async function getGuestMode(): Promise<boolean> {
 }
 
 export async function clearUserSession(): Promise<void> {
+  // Separate steps: a SecureStore failure must not leave the email and cached dashboard behind.
   try {
     const secureAvailable = await isSecureStoreAvailable();
     if (secureAvailable) {
       await SecureStore.deleteItemAsync(SECURE_KEY_PASSWORD);
     }
+  } catch (e) {
+    if (__DEV__) {
+      console.warn('[StorageService] Error deleting secure password:', e);
+    }
+  }
 
+  try {
     await AsyncStorage.multiRemove([
       KEY_USER_EMAIL,
       KEY_LEGACY_USER_PASSWORD,
