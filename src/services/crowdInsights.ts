@@ -19,22 +19,6 @@ export function formatHour(hour: number): string {
   return `${String(hour).padStart(2, '0')}:00`;
 }
 
-export function getTrendText(hours: CrowdInsightHour[], current: CrowdInsightHour): string {
-  const next = hours.find((h) => h.hour === current.hour + 1);
-  if (!next) return 'Chiude alle 22:00';
-  const arrow = next.percent > current.percent ? '↗' : next.percent < current.percent ? '↘' : '→';
-  return `${arrow} Alle ${next.label}: ${next.level} (~${next.percent}%)`;
-}
-
-export function getBestTimeText(hours: CrowdInsightHour[], current: CrowdInsightHour): string {
-  const best = hours
-    .filter((h) => h.hour > current.hour)
-    .sort((a, b) => a.hour - b.hour)
-    .reduce<CrowdInsightHour | null>((acc, h) => (!acc || h.percent < acc.percent ? h : acc), null);
-  if (!best || current.percent <= best.percent) return '⭐ Adesso è il momento migliore di oggi';
-  return `⭐ Meglio oggi: ${best.label} (~${best.percent}%)`;
-}
-
 /** First run of consecutive hours sharing the day's max (or min) percent, e.g. "10:00-14:00". */
 export function getExtremeRange(hours: CrowdInsightHour[], kind: 'max' | 'min'): CrowdRange | null {
   if (hours.length === 0) return null;

@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchLiveGoogleCrowd, BASELINE_WEEKLY, getCrowdComparisonLabel } from '../services/googleCrowdService';
-import { getTrendText, getBestTimeText, getExtremeRange } from '../services/crowdInsights';
+import { getExtremeRange } from '../services/crowdInsights';
 import {
   fetchLiveGinnipalData,
   bookLiveReservation,
@@ -520,8 +520,6 @@ export default function App() {
     activeCrowdList.find((h) => h.hour === currentHour) ||
     activeCrowdList.find((h) => Math.abs(h.hour - currentHour) <= 1) ||
     activeCrowdList[0];
-  const crowdTrendText = liveCrowdItem ? getTrendText(activeCrowdList, liveCrowdItem) : '';
-  const crowdBestTimeText = liveCrowdItem ? getBestTimeText(activeCrowdList, liveCrowdItem) : '';
   const dayPeak = getExtremeRange(activeCrowdList, 'max');
   const dayCalm = getExtremeRange(activeCrowdList, 'min');
 
@@ -1301,7 +1299,7 @@ export default function App() {
 
                     {/* Typical-level bar only when live data differs from history */}
                     {liveCrowdItem.isLive && (
-                      <View style={[styles.comparisonContainer, { marginBottom: 12 }]}>
+                      <View style={styles.comparisonContainer}>
                         <View style={styles.comparisonBarGroup}>
                           <View style={styles.comparisonBarLabelRow}>
                             <Text style={styles.comparisonLabel} numberOfLines={1} ellipsizeMode="tail">
@@ -1321,13 +1319,7 @@ export default function App() {
                           </View>
                         </View>
                       </View>
-                    )}
-
-                    <View style={styles.crowdInsightsBox}>
-                      <Text style={styles.crowdInsightText}>{crowdTrendText}</Text>
-                      <Text style={styles.crowdInsightText}>{crowdBestTimeText}</Text>
-                    </View>
-                  </>
+                    )}                  </>
                 ) : (
                   <>
                     <View style={styles.liveCenteredHeader}>
@@ -2537,17 +2529,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     marginTop: 4,
-  },
-  crowdInsightsBox: {
-    gap: 6,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingTop: 10,
-  },
-  crowdInsightText: {
-    fontSize: 12.5,
-    color: '#334155',
-    fontWeight: '600',
   },
   livePillSmall: {
     backgroundColor: '#DCFCE7',
