@@ -508,6 +508,9 @@ export default function App() {
       : currentHour >= 10 && currentHour < 22;
 
   const isTodaySelected = selectedCrowdDay === todayCrowdKey;
+  const isTodayLiveNow =
+    isGymOpenNow &&
+    !!crowdWeeklyData[todayCrowdKey]?.hours?.find((h) => h.hour === currentHour)?.isLive;
 
   const activeDayData =
     crowdWeeklyData[selectedCrowdDay] || crowdWeeklyData[todayCrowdKey] || crowdWeeklyData['mercoledi'];
@@ -1175,7 +1178,7 @@ export default function App() {
                 } else if (tab.id === 'sabato') {
                   displayLabel = `${tab.label} (Oggi • Mattina)`;
                 } else {
-                  displayLabel = `${tab.label} (Oggi • LIVE)`;
+                  displayLabel = `${tab.label} (Oggi • ${isTodayLiveNow ? 'LIVE' : 'Aperto'})`;
                 }
               }
 
