@@ -2,7 +2,7 @@
   "expo": {
     "name": "CusApp",
     "slug": "CusApp",
-    "version": "1.0.0",
+    "version": "2.6.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "cusapp",
@@ -12,7 +12,6 @@
     },
     "android": {
       "package": "it.cuscosenza.app",
-      "versionCode": 2,
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
