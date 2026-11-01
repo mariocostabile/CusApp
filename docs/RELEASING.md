@@ -13,6 +13,28 @@ GitHub Releases di `mariocostabile/CusApp` (repo pubblico) → l'app all'avvio i
 `api.github.com/repos/mariocostabile/CusApp/releases/latest`, confronta il tag con la propria
 versione, mostra un popup, scarica l'APK e apre l'installer di Android. Nessuno store.
 
+Codice: `src/services/updateRelease.ts` (logica pura), `updateService.ts` (fetch), `updateInstaller.ts`
+(download + installer), `src/components/update-prompt.tsx` (popup, basato su `AppDialog`),
+`.github/workflows/release.yml` (release-please + build firmata).
+
+## Configurazione iniziale (una tantum, la fa l'utente)
+
+1. **Secrets** — GitHub → Settings → Secrets and variables → Actions → New repository secret:
+   - `KEYSTORE_BASE64`: il keystore indicato da `CUSAPP_UPLOAD_STORE_FILE` in `~/.gradle/gradle.properties`,
+     convertito in base64 (PowerShell):
+     ```powershell
+     [Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\percorso\del\keystore.jks")) | Set-Clipboard
+     ```
+   - `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`: i valori `CUSAPP_UPLOAD_STORE_PASSWORD`,
+     `CUSAPP_UPLOAD_KEY_ALIAS`, `CUSAPP_UPLOAD_KEY_PASSWORD` dello stesso file.
+2. **Permessi Actions** — Settings → Actions → General → Workflow permissions:
+   attiva "Allow GitHub Actions to create and approve pull requests" (serve a release-please).
+3. **Ultimo invio manuale** — gli utenti con la 2.6.5 senza controllo aggiornamenti ricevono a mano
+   l'APK della prima release automatica; dalle successive arriva il popup.
+
+Le release pubblicate prima che l'APK sia allegato (il job `build-apk` dura alcuni minuti) vengono ignorate
+dall'app: `parseRelease` richiede un asset `.apk` del repo.
+
 ## Pubblicare un aggiornamento
 
 Il versionamento è gestito da **release-please**: non modificare mai a mano la versione.
@@ -49,8 +71,13 @@ Usalo solo se l'utente lo chiede.
   `KEY_ALIAS`, `KEY_PASSWORD`; in locale `CUSAPP_UPLOAD_*` in `~/.gradle/gradle.properties`, vedi
   `plugins/withReleaseSigning.js`). Una chiave diversa rende impossibile l'aggiornamento sopra l'app installata.
   Non stampare, committare o rigenerare il keystore.
-- **URL degli APK**: `updateService` accetta solo download da
+- **URL degli APK**: `parseRelease` (`src/services/updateRelease.ts`) accetta solo download da
   `https://github.com/mariocostabile/CusApp/releases/download/`. Non allentare questo controllo.
 - **Asset**: una sola `.apk` per release.
+- **File di release-please**: `release-please-config.json`, `.release-please-manifest.json`, `version.txt`,
+  `CHANGELOG.md` sono gestiti dal bot. Modificali solo per cambiare la configurazione, mai la versione.
+- **Test**: `npm test` (Node, nessun jest) copre `app.config.js` e `src/services/updateRelease.ts`;
+  tienili verdi prima di ogni merge.
+- **Popup**: usa sempre `AppDialog`, come tutti i popup dell'app, per mantenere lo stesso stile.
 - Non pubblicare release, non fare merge su `master` e non modificare i Secrets senza consenso esplicito.
 - Solo `CusApp/`: non toccare `CusAppDemo/` se non richiesto.
