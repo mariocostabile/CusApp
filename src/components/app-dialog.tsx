@@ -5,6 +5,8 @@ export type AppDialogAction = {
   label: string;
   variant: 'danger' | 'secondary';
   onPress?: () => void;
+  /** Se true il pulsante non chiude il dialog (default: chiude, poi esegue onPress). */
+  keepOpen?: boolean;
 };
 
 type AppDialogProps = {
@@ -13,9 +15,20 @@ type AppDialogProps = {
   message: ReactNode;
   actions: AppDialogAction[];
   onClose: () => void;
+  icon?: string;
+  /** Se false il tasto indietro di Android non chiude il dialog. */
+  dismissible?: boolean;
 };
 
-export function AppDialog({ visible, title, message, actions, onClose }: AppDialogProps) {
+export function AppDialog({
+  visible,
+  title,
+  message,
+  actions,
+  onClose,
+  icon = '⚠️',
+  dismissible = true,
+}: AppDialogProps) {
   return (
     <Modal
       visible={visible}
@@ -23,12 +36,12 @@ export function AppDialog({ visible, title, message, actions, onClose }: AppDial
       animationType="fade"
       statusBarTranslucent={true}
       navigationBarTranslucent={true}
-      onRequestClose={onClose}
+      onRequestClose={dismissible ? onClose : () => {}}
     >
       <View style={styles.backdrop}>
         <View style={styles.card}>
           <View style={styles.iconCircle}>
-            <Text style={styles.iconEmoji}>⚠️</Text>
+            <Text style={styles.iconEmoji}>{icon}</Text>
           </View>
 
           <Text style={styles.title}>{title}</Text>
@@ -43,7 +56,7 @@ export function AppDialog({ visible, title, message, actions, onClose }: AppDial
                   key={action.label}
                   style={isDanger ? styles.dangerBtn : styles.secondaryBtn}
                   onPress={() => {
-                    onClose();
+                    if (!action.keepOpen) onClose();
                     action.onPress?.();
                   }}
                   activeOpacity={0.8}
