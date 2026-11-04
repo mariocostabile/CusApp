@@ -78,7 +78,8 @@ jobs:
         if: inputs.tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$TAG" "${{ steps.apk.outputs.name }}" --clobber
+          APK_NAME: ${{ steps.apk.outputs.name }}
+        run: gh release upload "$TAG" "$APK_NAME" --clobber
 
       - name: Upload APK as artifact
         if: inputs.tag == ''
