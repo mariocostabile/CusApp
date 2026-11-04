@@ -82,6 +82,12 @@ L'applicazione trasforma la gestione delle prenotazioni della palestra in un'esp
 - **Scelta ricordata**: Alla riapertura l'app torna direttamente in modalità ospite. Il flag viene cancellato solo con un login riuscito o con il logout.
 - **Sblocco**: Il pulsante *Accedi* (header o card) apre il login; dopo l'accesso tutte le funzioni sono disponibili.
 
+### 🚀 7. Aggiornamenti Automatici In-App
+- **Nessuno store**: All'avvio l'app controlla l'ultima [GitHub Release](https://github.com/mariocostabile/CusApp/releases) del repository e, se c'è una versione più recente, mostra un popup.
+- **Aggiorna ora / Più tardi**: Download dell'APK con avanzamento e apertura dell'installer di Android; il popup ricompare al prossimo avvio finché non si aggiorna.
+- **Aggiornamenti obbligatori**: Se le note della release contengono `[obbligatorio]`, il popup non si può chiudere.
+- **Sicurezza**: Vengono accettati solo APK scaricati dalle release di questo repository, firmati con la stessa chiave dell'app installata.
+
 ---
 
 ## 🏛️ Architettura & Integrazione GinniPAL
@@ -200,7 +206,11 @@ L'applicazione rispetta fedelmente le policy e i vincoli imposti dal centro spor
 CusApp/
 ├── .github/
 │   └── workflows/
-│       └── sync-crowd.yml       # Workflow CI/CD per aggiornamento automatico affluenza
+│       ├── sync-crowd.yml       # Workflow CI/CD per aggiornamento automatico affluenza
+│       ├── release.yml          # release-please: Release PR, tag vX.Y.Z e GitHub Release
+│       └── build-apk.yml        # Build firmata dell'APK (manuale o richiamata da release.yml)
+├── docs/
+│   └── RELEASING.md             # Regole per rilasci e aggiornamenti in-app
 ├── assets/                      # Icone, splash screen e asset grafici
 │   └── images/
 ├── scripts/                     # Script di automazione e manutenzione
@@ -211,14 +221,23 @@ CusApp/
 │   │   └── index.tsx            # Schermata principale (Dashboard, Turni, Affluenza, Disdette)
 │   ├── components/              # Componenti modulari dell'interfaccia
 │   │   ├── animated-icon.tsx    # Icone animate con Reanimated
+│   │   ├── app-dialog.tsx       # Popup standard dell'app
+│   │   ├── update-prompt.tsx    # Popup di aggiornamento in-app
 │   │   └── ...
 │   ├── constants/               # Costanti dell'app, temi e colori
 │   ├── hooks/                   # Custom hooks per stato e lifecycle
 │   └── services/                # Logica applicativa e comunicazione backend
 │       ├── ginnipalNodeFetcher.js # Driver HTTP nativo per scraping e azioni GinniPAL
 │       ├── ginnipalService.ts     # Client bridge per chiamate dirette/proxy
-│       └── googleCrowdService.ts  # Servizio analitico affluenza Google Maps con caching
+│       ├── googleCrowdService.ts  # Servizio analitico affluenza Google Maps con caching
+│       ├── updateRelease.ts       # Logica pura aggiornamenti (versioni, validazione release)
+│       ├── updateService.ts       # Controllo dell'ultima GitHub Release all'avvio
+│       └── updateInstaller.ts     # Download dell'APK e apertura dell'installer Android
 ├── app.json                     # Configurazione dell'applicazione Expo (icon, splash, permissions)
+├── app.config.js                # Calcola android.versionCode dalla versione
+├── release-please-config.json   # Configurazione di release-please (changelog in italiano)
+├── .release-please-manifest.json # Versione corrente, aggiornata da release-please
+├── CHANGELOG.md                 # Storico delle versioni, generato da release-please
 ├── crowd_live.json              # Dataset JSON affluenza live e curve storiche settimanali
 ├── metro.config.js              # Configurazione Metro Bundler con proxy API GinniPAL
 ├── package.json                 # Dipendenze e script npm
@@ -231,7 +250,7 @@ CusApp/
 
 ### Prerequisiti
 
-- [Node.js](https://nodejs.org/) (versione 18 o superiore consigliata)
+- [Node.js](https://nodejs.org/) 24 consigliato (minimo 22.18, richiesto da `npm test`)
 - [npm](https://www.npmjs.com/) o [bun](https://bun.sh/)
 - Per test su dispositivo fisico: applicazione **Expo Go** ([Android](https://play.google.com/store/apps/details?id=host.exp.exponent) / [iOS](https://apps.apple.com/app/expo-go/id982107779)) oppure un Development Build.
 
@@ -293,6 +312,9 @@ npm run lint
 
 # Controllo tipi TypeScript
 npx tsc --noEmit
+
+# Test (Node test runner: versionCode e logica degli aggiornamenti)
+npm test
 ```
 
 > [!NOTE]
@@ -306,7 +328,10 @@ npx tsc --noEmit
 
 La build di release è firmata con una chiave privata, collegata dal plugin `plugins/withReleaseSigning.js`. Senza la chiave la build di release fallisce (non ricade sulla chiave di debug pubblica).
 
-1. Genera la chiave **fuori dal repository**:
+> [!CAUTION]
+> La chiave di CusApp esiste già: **non rigenerarla**. Con una chiave diversa gli aggiornamenti non si installano sopra l'app esistente. I passi seguenti servono solo per configurare una nuova macchina con la chiave esistente o per un nuovo progetto.
+
+1. Genera la chiave **fuori dal repository** (solo la prima volta):
    ```bash
    keytool -genkeypair -v -storetype PKCS12 -keystore ~/.cusapp/cusapp-release.jks -alias cusapp -keyalg RSA -keysize 4096 -validity 10000
    ```
@@ -321,12 +346,24 @@ La build di release è firmata con una chiave privata, collegata dal plugin `plu
 > [!WARNING]
 > Non committare mai il file `.jks` né le password. Conservane un backup sicuro: se la chiave va persa non è più possibile pubblicare aggiornamenti dell'app, e chi l'ha installata deve disinstallarla.
 
-### Compilazione
+### Compilazione su GitHub (consigliata)
 
-Per compilare il pacchetto autonomo di distribuzione per Android (`.apk`):
+Il workflow [build-apk.yml](.github/workflows/build-apk.yml) compila e firma l'APK sui server di GitHub, usando i Secrets del repository (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`). Non crea una release, quindi gli utenti non ricevono nessun aggiornamento.
+
+- **Dal browser**: *Actions* → *Build APK* → *Run workflow*; a fine build l'APK è tra gli *Artifacts* della run (conservato 7 giorni).
+- **Da terminale**:
+  ```bash
+  gh workflow run build-apk.yml --ref master
+  gh run list --workflow build-apk.yml --limit 1     # ID della run
+  gh run download <ID> -D dist-apk
+  ```
+
+GitHub compila solo il codice già pushato.
+
+### Compilazione locale
 
 ```bash
-# Compilazione locale automatica (consigliata)
+# Compilazione locale automatica
 npm run build:apk
 # oppure facendo doppio clic su build-apk.bat
 
@@ -335,7 +372,17 @@ npx expo prebuild -p android
 cd android && ./gradlew assembleRelease
 ```
 
-L'APK compilato finale viene posizionato automaticamente in `dist-apk/CusCosenza.apk`.
+L'APK compilato finale viene posizionato automaticamente in `dist-apk/CusCosenza.apk`. Dopo un `git pull` esegui `npm install` se sono cambiate le dipendenze.
+
+### Rilasci e aggiornamenti automatici
+
+Le versioni sono gestite da [release-please](https://github.com/googleapis/release-please) con i [Conventional Commits](https://www.conventionalcommits.org/it/):
+
+1. I commit `fix:` (patch) e `feat:` (minor) uniti su `master` aggiornano la *Release PR* `chore(master): release X.Y.Z`.
+2. Il merge della Release PR crea il tag `vX.Y.Z` e la GitHub Release; [release.yml](.github/workflows/release.yml) richiama `build-apk.yml` che allega `CusCosenza-vX.Y.Z.apk`.
+3. Al successivo avvio l'app degli utenti mostra il popup di aggiornamento.
+
+La versione in `app.json` è scritta da release-please e `android.versionCode` è calcolato da [app.config.js](app.config.js): non vanno modificati a mano. Regole complete in [docs/RELEASING.md](docs/RELEASING.md).
 
 ---
 
