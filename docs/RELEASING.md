@@ -35,6 +35,21 @@ Codice: `src/services/updateRelease.ts` (logica pura), `updateService.ts` (fetch
 Le release pubblicate prima che l'APK sia allegato (il job `build-apk` dura alcuni minuti) vengono ignorate
 dall'app: `parseRelease` richiede un asset `.apk` del repo.
 
+## Compilare un APK senza rilasciare (build su GitHub)
+
+Preferisci GitHub alla build locale (`npm run build:apk`): fa risparmiare batteria e prova i Secrets.
+`.github/workflows/build-apk.yml` si avvia a mano e produce un APK firmato come artifact (7 giorni),
+**senza** creare una release, quindi i tester non vedono nessun popup.
+
+```bash
+gh workflow run build-apk.yml -R mariocostabile/CusApp --ref master
+gh run list -R mariocostabile/CusApp --workflow build-apk.yml --limit 1   # prendi l'ID
+gh run watch <ID> -R mariocostabile/CusApp --exit-status
+gh run download <ID> -R mariocostabile/CusApp -D dist-apk
+```
+Lo stesso workflow è richiamato da `release.yml` (con `tag`) per allegare l'APK alla release: i passi di
+build esistono solo in `build-apk.yml`.
+
 ## Pubblicare un aggiornamento
 
 Il versionamento è gestito da **release-please**: non modificare mai a mano la versione.
@@ -50,7 +65,7 @@ Il versionamento è gestito da **release-please**: non modificare mai a mano la 
 3. Rilascio = merge della Release PR (solo su richiesta esplicita dell'utente). Il workflow crea il tag
    `vX.Y.Z`, la GitHub Release e allega `CusCosenza-vX.Y.Z.apk` firmato.
 4. Verifica: `gh release view vX.Y.Z -R mariocostabile/CusApp` deve elencare un asset `.apk`.
-   Se manca, controlla il job `build-apk` con `gh run list -R mariocostabile/CusApp --workflow release.yml`.
+   Se manca, controlla il job `build-apk / build` con `gh run list -R mariocostabile/CusApp --workflow release.yml`.
 
 Aggiornamento **obbligatorio** (popup non chiudibile): aggiungi `[obbligatorio]` al corpo della release,
 es.:
