@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.7.1](https://github.com/mariocostabile/CusApp/compare/v2.7.0...v2.7.1) (2026-11-06)
+
+
+### Novità
+
+* versione dell'app visibile ([6047b9a](https://github.com/mariocostabile/CusApp/commit/6047b9a0b3430dc0fa4c75fe7f9c00857fb0d716))
+* versione dell'app visibile in fondo alla schermata principale e al login ([f7984ff](https://github.com/mariocostabile/CusApp/commit/f7984ff93374f2dd7da2685bcc8c2f028076d230))
+
 ## [2.7.0](https://github.com/mariocostabile/CusApp/compare/v2.6.5...v2.7.0) (2026-11-01)
 
 
