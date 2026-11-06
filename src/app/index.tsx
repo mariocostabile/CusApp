@@ -32,6 +32,10 @@ import {
   getGuestMode,
 } from '../services/storageService';
 import { AppDialog, type AppDialogAction } from '../components/app-dialog';
+import Constants from 'expo-constants';
+
+// Versione installata (scritta da release-please in app.json): utile ai tester per le segnalazioni.
+const APP_VERSION_LABEL = Constants.expoConfig?.version ? `v${Constants.expoConfig.version}` : '';
 
 LogBox.ignoreLogs([
   'Cannot connect to Expo CLI',
@@ -864,7 +868,9 @@ export default function App() {
                 <Text style={styles.guestLinkText}>Continua senza accedere</Text>
               </TouchableOpacity>
 
-              <Text style={styles.footerCopy}>CusApp • CUS Cosenza</Text>
+              <Text style={styles.footerCopy}>
+                CusApp • CUS Cosenza{APP_VERSION_LABEL ? ` • ${APP_VERSION_LABEL}` : ''}
+              </Text>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -1395,7 +1401,9 @@ export default function App() {
           )}
         </View>
 
-
+        {APP_VERSION_LABEL !== '' && (
+          <Text style={styles.footerCopy}>CusApp {APP_VERSION_LABEL}</Text>
+        )}
 
         <View style={{ height: 40 }} />
       </ScrollView>
