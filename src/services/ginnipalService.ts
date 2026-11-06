@@ -378,10 +378,19 @@ async function fetchLiveGinnipalDirect(
   const parsedTessera = rawTessera ? decodeHtml(rawTessera).replace(/<[^>]*>/g, '').trim() : '';
 
   const rawIscrizioni = decodeHtml(subInitControls.stIscrizioni?.html || '');
-  const totMatch = rawIscrizioni.match(/Totale utilizzi:\s*(\d+)/i);
-  const usuMatch = rawIscrizioni.match(/Usufruiti:\s*(\d+)/i);
-  const rimMatch = rawIscrizioni.match(/Rimanenti:\s*(\d+)/i);
-  const valMatch = rawIscrizioni.match(/(dal\s+\d{2}\/\d{2}\/\d{4}\s+al\s+\d{2}\/\d{2}\/\d{4})/i);
+  // After a refill GinniPAL lists one BB row per purchased pack (old exhausted one first): sum them all.
+  const bbText = rawIscrizioni
+    .replace(/<[^>]*>/g, ' ')
+    .split(/Cod\.:\s*/)
+    .filter((seg) => /^BB\b/.test(seg))
+    .join('\n');
+  const sumAll = (re: RegExp) =>
+    [...bbText.matchAll(re)].reduce((acc, m) => acc + parseInt(m[1], 10), 0);
+  const total = sumAll(/Totale utilizzi:\s*(\d+)/gi);
+  const used = sumAll(/Usufruiti:\s*(\d+)/gi);
+  const remaining = sumAll(/Rimanenti:\s*(\d+)/gi);
+  const validity =
+    [...bbText.matchAll(/(dal\s+\d{2}\/\d{2}\/\d{4}\s+al\s+\d{2}\/\d{2}\/\d{4})/gi)].pop()?.[1] || '';
 
   const rawCert = decodeHtml(subInitControls.stDatiCertificatoMedico?.html || '');
   const certExpMatch = rawCert.match(/Scadenza:\s*(\d{2}\/\d{2}\/\d{4})/i);
@@ -427,10 +436,10 @@ async function fetchLiveGinnipalDirect(
     subscription: {
       title: 'Body Building',
       code: 'BB',
-      total: totMatch ? parseInt(totMatch[1], 10) : 0,
-      used: usuMatch ? parseInt(usuMatch[1], 10) : 0,
-      remaining: rimMatch ? parseInt(rimMatch[1], 10) : 0,
-      validity: valMatch ? valMatch[1] : '',
+      total,
+      used,
+      remaining,
+      validity,
     },
     reservations,
   };
