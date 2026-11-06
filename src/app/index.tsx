@@ -1347,7 +1347,11 @@ export default function App() {
                             },
                           ]}
                         >
-                          {liveCrowdItem.comparisonStatus}
+                          {/Più/.test(liveCrowdItem.comparisonStatus || '')
+                            ? `↑ ${liveCrowdItem.comparisonStatus}`
+                            : /Meno/.test(liveCrowdItem.comparisonStatus || '')
+                            ? `↓ ${liveCrowdItem.comparisonStatus}`
+                            : '= In linea con il solito'}
                         </Text>
                       )}
                     </View>
