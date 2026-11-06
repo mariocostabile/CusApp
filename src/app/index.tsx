@@ -13,6 +13,8 @@ import {
   RefreshControl,
   LogBox,
   KeyboardAvoidingView,
+  AppState,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchLiveGoogleCrowd, BASELINE_WEEKLY } from '../services/googleCrowdService';
@@ -21,7 +23,10 @@ import {
   fetchLiveGinnipalData,
   bookLiveReservation,
   cancelLiveReservation,
+  fetchSlotAvailability,
+  isSlotFull,
   DashboardData,
+  type SlotAvailability,
 } from '../services/ginnipalService';
 import {
   saveUserSession,
@@ -36,6 +41,7 @@ import Constants from 'expo-constants';
 
 // Versione installata (scritta da release-please in app.json): utile ai tester per le segnalazioni.
 const APP_VERSION_LABEL = Constants.expoConfig?.version ? `v${Constants.expoConfig.version}` : '';
+const GINNIPAL_URL = 'https://ginnipal.it/CusCosenza/ExtMain.aspx';
 
 LogBox.ignoreLogs([
   'Cannot connect to Expo CLI',
@@ -359,6 +365,8 @@ export default function App() {
   const [isBookingModalVisible, setIsBookingModalVisible] = useState(false);
   const [selectedDay, setSelectedDay] = useState(AVAILABLE_DAYS[0]?.date || '03/10/2026');
   const [selectedSlot, setSelectedSlot] = useState('');
+  // Free periods read from GinniPAL when the booking modal opens; null = unknown.
+  const [slotAvailability, setSlotAvailability] = useState<SlotAvailability | null>(null);
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
   const [cancellingResId, setCancellingResId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<{
@@ -500,6 +508,29 @@ export default function App() {
     }
   };
 
+  // Purchase happens in the phone's browser: reload entries once the user comes back to the app.
+  const pendingPurchaseRefresh = useRef(false);
+  const fullRefreshRef = useRef(handleFullRefresh);
+  useEffect(() => {
+    fullRefreshRef.current = handleFullRefresh;
+  });
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && pendingPurchaseRefresh.current) {
+        pendingPurchaseRefresh.current = false;
+        fullRefreshRef.current();
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  const handleBuyEntries = () => {
+    pendingPurchaseRefresh.current = true;
+    Linking.openURL(GINNIPAL_URL).catch(() => {
+      pendingPurchaseRefresh.current = false;
+    });
+  };
+
   const isGymOpenNow =
     currentDayOfWeek === 0
       ? false
@@ -545,14 +576,16 @@ export default function App() {
 
   const isSelectedSlotBookable = selectedSlot
     ? isSlotBookable(selectedSlot, isSelectedToday, currentHour) &&
-      !isSlotAlreadyBookedByUser(selectedSlot, selectedDay)
+      !isSlotAlreadyBookedByUser(selectedSlot, selectedDay) &&
+      !isSlotFull(selectedSlot, selectedDay, slotAvailability)
     : false;
 
   const availableSlotsForSelectedDay = isSelectedSaturday ? SATURDAY_BOOKING_SLOTS : WEEKDAY_BOOKING_SLOTS;
   const hasAnyBookableSlot = availableSlotsForSelectedDay.some(
     (s) =>
       isSlotBookable(s.slot, isSelectedToday, currentHour) &&
-      !isSlotAlreadyBookedByUser(s.slot, selectedDay)
+      !isSlotAlreadyBookedByUser(s.slot, selectedDay) &&
+      !isSlotFull(s.slot, selectedDay, slotAvailability)
   );
 
   const getSlotDynamicCrowd = (slot: string, dateStr: string) => {
@@ -620,7 +653,8 @@ export default function App() {
     const firstAvail = availableSlots.find(
       (s) =>
         isSlotBookable(s.slot, isToday, currentHour) &&
-        !isSlotAlreadyBookedByUser(s.slot, dayDate)
+        !isSlotAlreadyBookedByUser(s.slot, dayDate) &&
+        !isSlotFull(s.slot, dayDate, slotAvailability)
     );
     setSelectedSlot(firstAvail ? firstAvail.slot : '');
   };
@@ -640,6 +674,11 @@ export default function App() {
       setSelectedSlot(firstAvail ? firstAvail.slot : '');
     }
     setIsBookingModalVisible(true);
+    // Pills show crowd estimates first, then turn "Pieno" when GinniPAL answers (a selected full slot is just disabled).
+    setSlotAvailability(null);
+    if (!isGuest && email) {
+      fetchSlotAvailability(email, password).then(setSlotAvailability);
+    }
   };
 
   const handleEnterGuest = () => {
@@ -1030,15 +1069,32 @@ export default function App() {
             Validità: {dashboardData.subscription.validity}
           </Text>
 
-          {/* Quick Action Button */}
-          <TouchableOpacity
-            style={styles.bookActionBtn}
-            onPress={handleOpenBookingModal}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.bookActionBtnIcon}>📅</Text>
-            <Text style={styles.bookActionBtnText}>PRENOTA TURNO PALESTRA</Text>
-          </TouchableOpacity>
+          {/* Quick Action Button: buy entries when none are left, otherwise book */}
+          {dashboardData.subscription.remaining === 0 ? (
+            <>
+              <TouchableOpacity
+                style={styles.bookActionBtn}
+                onPress={handleBuyEntries}
+                activeOpacity={0.85}
+                accessibilityRole="link"
+              >
+                <Text style={styles.bookActionBtnIcon}>🛒</Text>
+                <Text style={styles.bookActionBtnText}>ACQUISTA INGRESSI</Text>
+              </TouchableOpacity>
+              <Text style={styles.validityNotice}>
+                Su GinniPAL: Iscriviti a un corso → cerca BB → Vedi e iscriviti
+              </Text>
+            </>
+          ) : (
+            <TouchableOpacity
+              style={styles.bookActionBtn}
+              onPress={handleOpenBookingModal}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.bookActionBtnIcon}>📅</Text>
+              <Text style={styles.bookActionBtnText}>PRENOTA TURNO PALESTRA</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* 2. Scheda dove visualizzare i dettagli: Existing Reservations Card */}
@@ -1291,7 +1347,11 @@ export default function App() {
                             },
                           ]}
                         >
-                          {liveCrowdItem.comparisonStatus}
+                          {/Più/.test(liveCrowdItem.comparisonStatus || '')
+                            ? `↑ ${liveCrowdItem.comparisonStatus}`
+                            : /Meno/.test(liveCrowdItem.comparisonStatus || '')
+                            ? `↓ ${liveCrowdItem.comparisonStatus}`
+                            : '= In linea con il solito'}
                         </Text>
                       )}
                     </View>
@@ -1519,7 +1579,9 @@ export default function App() {
                   <View style={styles.slotGridTwoCol}>
                     {SATURDAY_BOOKING_SLOTS.map((item) => {
                       const isAlreadyBooked = isSlotAlreadyBookedByUser(item.slot, selectedDay);
-                      const isBookable = isSlotBookable(item.slot, isSelectedToday, currentHour) && !isAlreadyBooked;
+                      const isFull = !isAlreadyBooked && isSlotFull(item.slot, selectedDay, slotAvailability);
+                      const isBookable =
+                        isSlotBookable(item.slot, isSelectedToday, currentHour) && !isAlreadyBooked && !isFull;
                       const isSelected = selectedSlot === item.slot && isBookable;
                       return (
                         <TouchableOpacity
@@ -1582,7 +1644,7 @@ export default function App() {
                               </View>
                             ) : (
                               <View style={styles.slotDisabledPill}>
-                                <Text style={styles.slotDisabledText}>Non disp.</Text>
+                                <Text style={styles.slotDisabledText}>{isFull ? 'Pieno' : 'Non disp.'}</Text>
                               </View>
                             )}
                           </View>
@@ -1608,7 +1670,9 @@ export default function App() {
                     <View style={styles.slotGridTwoCol}>
                       {WEEKDAY_BOOKING_SLOTS.filter((s) => s.category === 'mattina').map((item) => {
                         const isAlreadyBooked = isSlotAlreadyBookedByUser(item.slot, selectedDay);
-                        const isBookable = isSlotBookable(item.slot, isSelectedToday, currentHour) && !isAlreadyBooked;
+                        const isFull = !isAlreadyBooked && isSlotFull(item.slot, selectedDay, slotAvailability);
+                      const isBookable =
+                        isSlotBookable(item.slot, isSelectedToday, currentHour) && !isAlreadyBooked && !isFull;
                         const isSelected = selectedSlot === item.slot && isBookable;
                         return (
                           <TouchableOpacity
@@ -1671,7 +1735,7 @@ export default function App() {
                                 </View>
                               ) : (
                                 <View style={styles.slotDisabledPill}>
-                                  <Text style={styles.slotDisabledText}>Non disp.</Text>
+                                  <Text style={styles.slotDisabledText}>{isFull ? 'Pieno' : 'Non disp.'}</Text>
                                 </View>
                               )}
                             </View>
@@ -1690,7 +1754,9 @@ export default function App() {
                     <View style={styles.slotGridTwoCol}>
                       {WEEKDAY_BOOKING_SLOTS.filter((s) => s.category === 'pomeriggio').map((item) => {
                         const isAlreadyBooked = isSlotAlreadyBookedByUser(item.slot, selectedDay);
-                        const isBookable = isSlotBookable(item.slot, isSelectedToday, currentHour) && !isAlreadyBooked;
+                        const isFull = !isAlreadyBooked && isSlotFull(item.slot, selectedDay, slotAvailability);
+                      const isBookable =
+                        isSlotBookable(item.slot, isSelectedToday, currentHour) && !isAlreadyBooked && !isFull;
                         const isSelected = selectedSlot === item.slot && isBookable;
                         return (
                           <TouchableOpacity
@@ -1753,7 +1819,7 @@ export default function App() {
                                 </View>
                               ) : (
                                 <View style={styles.slotDisabledPill}>
-                                  <Text style={styles.slotDisabledText}>Non disp.</Text>
+                                  <Text style={styles.slotDisabledText}>{isFull ? 'Pieno' : 'Non disp.'}</Text>
                                 </View>
                               )}
                             </View>
@@ -1772,7 +1838,9 @@ export default function App() {
                     <View style={styles.slotGridTwoCol}>
                       {WEEKDAY_BOOKING_SLOTS.filter((s) => s.category === 'sera').map((item) => {
                         const isAlreadyBooked = isSlotAlreadyBookedByUser(item.slot, selectedDay);
-                        const isBookable = isSlotBookable(item.slot, isSelectedToday, currentHour) && !isAlreadyBooked;
+                        const isFull = !isAlreadyBooked && isSlotFull(item.slot, selectedDay, slotAvailability);
+                      const isBookable =
+                        isSlotBookable(item.slot, isSelectedToday, currentHour) && !isAlreadyBooked && !isFull;
                         const isSelected = selectedSlot === item.slot && isBookable;
                         return (
                           <TouchableOpacity
@@ -1835,7 +1903,7 @@ export default function App() {
                                 </View>
                               ) : (
                                 <View style={styles.slotDisabledPill}>
-                                  <Text style={styles.slotDisabledText}>Non disp.</Text>
+                                  <Text style={styles.slotDisabledText}>{isFull ? 'Pieno' : 'Non disp.'}</Text>
                                 </View>
                               )}
                             </View>
