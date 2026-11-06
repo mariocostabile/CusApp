@@ -13,6 +13,8 @@ import {
   RefreshControl,
   LogBox,
   KeyboardAvoidingView,
+  AppState,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchLiveGoogleCrowd, BASELINE_WEEKLY } from '../services/googleCrowdService';
@@ -36,6 +38,7 @@ import Constants from 'expo-constants';
 
 // Versione installata (scritta da release-please in app.json): utile ai tester per le segnalazioni.
 const APP_VERSION_LABEL = Constants.expoConfig?.version ? `v${Constants.expoConfig.version}` : '';
+const GINNIPAL_URL = 'https://ginnipal.it/CusCosenza/ExtMain.aspx';
 
 LogBox.ignoreLogs([
   'Cannot connect to Expo CLI',
@@ -498,6 +501,29 @@ export default function App() {
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  // Purchase happens in the phone's browser: reload entries once the user comes back to the app.
+  const pendingPurchaseRefresh = useRef(false);
+  const fullRefreshRef = useRef(handleFullRefresh);
+  useEffect(() => {
+    fullRefreshRef.current = handleFullRefresh;
+  });
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && pendingPurchaseRefresh.current) {
+        pendingPurchaseRefresh.current = false;
+        fullRefreshRef.current();
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  const handleBuyEntries = () => {
+    pendingPurchaseRefresh.current = true;
+    Linking.openURL(GINNIPAL_URL).catch(() => {
+      pendingPurchaseRefresh.current = false;
+    });
   };
 
   const isGymOpenNow =
@@ -1030,15 +1056,32 @@ export default function App() {
             Validità: {dashboardData.subscription.validity}
           </Text>
 
-          {/* Quick Action Button */}
-          <TouchableOpacity
-            style={styles.bookActionBtn}
-            onPress={handleOpenBookingModal}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.bookActionBtnIcon}>📅</Text>
-            <Text style={styles.bookActionBtnText}>PRENOTA TURNO PALESTRA</Text>
-          </TouchableOpacity>
+          {/* Quick Action Button: buy entries when none are left, otherwise book */}
+          {dashboardData.subscription.remaining === 0 ? (
+            <>
+              <TouchableOpacity
+                style={styles.bookActionBtn}
+                onPress={handleBuyEntries}
+                activeOpacity={0.85}
+                accessibilityRole="link"
+              >
+                <Text style={styles.bookActionBtnIcon}>🛒</Text>
+                <Text style={styles.bookActionBtnText}>ACQUISTA INGRESSI</Text>
+              </TouchableOpacity>
+              <Text style={styles.validityNotice}>
+                Su GinniPAL: Iscriviti a un corso → cerca BB → Vedi e iscriviti
+              </Text>
+            </>
+          ) : (
+            <TouchableOpacity
+              style={styles.bookActionBtn}
+              onPress={handleOpenBookingModal}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.bookActionBtnIcon}>📅</Text>
+              <Text style={styles.bookActionBtnText}>PRENOTA TURNO PALESTRA</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* 2. Scheda dove visualizzare i dettagli: Existing Reservations Card */}
