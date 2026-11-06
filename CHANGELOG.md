@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.8.0](https://github.com/mariocostabile/CusApp/compare/v2.7.1...v2.8.0) (2026-11-06)
+
+
+### Novità
+
+* pulsante Acquista ingressi quando sono finiti (apre GinniPAL nel browser) ([279964a](https://github.com/mariocostabile/CusApp/commit/279964a675be113e770d88a681c171cc534f8664))
+* turni pieni segnati come "Pieno" nelle pillole di prenotazione ([2adfca7](https://github.com/mariocostabile/CusApp/commit/2adfca77b4cecb8176e88cb78b763558fdfc6c61))
+
+
+### Correzioni
+
+* confronto col solito esplicito nella scheda affluenza live ([c97c6f0](https://github.com/mariocostabile/CusApp/commit/c97c6f02354638cfda6b27538c7ecae90d7223b3))
+* ingressi aggiornati dopo la ricarica (somma tutti gli abbonamenti BB) ([8839dfd](https://github.com/mariocostabile/CusApp/commit/8839dfdcc74b2050e30d56141fa7d4ececc60280))
+
 ## [2.7.1](https://github.com/mariocostabile/CusApp/compare/v2.7.0...v2.7.1) (2026-11-06)
 
 
