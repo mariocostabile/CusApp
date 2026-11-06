@@ -457,21 +457,9 @@ async function fetchLiveGinnipalDirect(
 }
 
 /**
- * Direct HTTPS booking execution from mobile.
+ * Steps 1-9: login and open the BB booking form (read-only, nothing is booked).
  */
-async function bookLiveReservationDirect(
-  email: string,
-  password: string,
-  dateStr: string,
-  timeSlot: string
-): Promise<DashboardData> {
-  if (!dateStr.trim() || !timeSlot.trim()) {
-    throw new Error('Seleziona una data e un turno validi prima di prenotare.');
-  }
-  const dateParts = dateStr.split('/');
-  const targetDateIso =
-    dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : dateStr;
-
+async function openBookingForm(email: string, password: string) {
   const jar: CookieJar = { list: [] };
   const { subFormKey } = await loginAndInitSubForm(email, password, jar);
 
@@ -530,12 +518,37 @@ async function bookLiveReservationDirect(
   if (!iscrizioneUrl) throw new Error('Modulo di prenotazione non disponibile');
   const iscrizioneSubKey = iscrizioneUrl.match(/formKey=([^&]+)/)[1];
 
-  // 9. Initialize booking form
-  await ginnipalFetch(
+  // 9. Initialize booking form: its controls carry the calendar with the free periods.
+  const formRes = await ginnipalFetch(
     `https://ginnipal.it/CusCosenza/ExtMain.Ajax.ashx/Initialize?FormKey=${iscrizioneSubKey}`,
     {},
     jar
   );
+  const formControls = (JSON.parse(formRes.text).actions || []).reduce(
+    (acc: Record<string, any>, action: any) => Object.assign(acc, action.controls || {}),
+    {}
+  );
+
+  return { jar, iscrizioneSubKey, formControls };
+}
+
+/**
+ * Direct HTTPS booking execution from mobile.
+ */
+async function bookLiveReservationDirect(
+  email: string,
+  password: string,
+  dateStr: string,
+  timeSlot: string
+): Promise<DashboardData> {
+  if (!dateStr.trim() || !timeSlot.trim()) {
+    throw new Error('Seleziona una data e un turno validi prima di prenotare.');
+  }
+  const dateParts = dateStr.split('/');
+  const targetDateIso =
+    dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : dateStr;
+
+  const { jar, iscrizioneSubKey } = await openBookingForm(email, password);
 
   // 10. DataPrenotataChanged
   const dateChangePayload = new URLSearchParams({
@@ -908,4 +921,50 @@ export async function cancelLiveReservation(
   }
 
   return await cancelLiveReservationDirect(email, password, reservationId);
+}
+
+export interface SlotAvailability {
+  /** Periods that still have free places, ISO local times ("2026-11-06T20:00:00"). */
+  periods: { start: string; end: string }[];
+  /** Last day (YYYY-MM-DD) covered by GinniPAL's booking calendar. */
+  windowEnd: string;
+}
+
+/**
+ * Reads which periods still have free places from the GinniPAL booking calendar.
+ * Read-only: opens the booking form without selecting or confirming anything.
+ * Returns null when unavailable (web, network error): callers then show slots as before.
+ */
+export async function fetchSlotAvailability(
+  email: string,
+  password: string
+): Promise<SlotAvailability | null> {
+  if (Platform.OS === 'web') return null;
+  try {
+    const { formControls } = await openBookingForm(email, password);
+    const cal = formControls.calTabellone || {};
+    const periods = (cal.availablePeriods || []).map((p: any) => ({ start: p.start, end: p.end }));
+    const days = [...periods, ...(cal.calendarEvents || [])]
+      .map((e: any) => String(e.start || '').slice(0, 10))
+      .filter(Boolean)
+      .sort();
+    return { periods, windowEnd: days[days.length - 1] || '' };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True when GinniPAL lists no free period covering the slot ("18:00 - 20:00") on dateStr ("dd/mm/yyyy").
+ * Days past the calendar window are never marked full: no data there.
+ */
+export function isSlotFull(slot: string, dateStr: string, availability: SlotAvailability | null): boolean {
+  if (!availability) return false;
+  const [d, m, y] = dateStr.split('/');
+  const iso = `${y}-${m}-${d}`;
+  if (iso > availability.windowEnd) return false;
+  const [from, to] = slot.split(' - ').map((t) => t.trim().padStart(5, '0'));
+  const slotStart = `${iso}T${from}:00`;
+  const slotEnd = `${iso}T${to}:00`;
+  return !availability.periods.some((p) => p.start <= slotStart && p.end >= slotEnd);
 }
