@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.8.1](https://github.com/mariocostabile/CusApp/compare/v2.8.0...v2.8.1) (2026-11-07)
+
+
+### Correzioni
+
+* prenotazione bloccata da "JSON Parse error: Unexpected character: v" ([645b4bb](https://github.com/mariocostabile/CusApp/commit/645b4bbc06363538f653e99f5f2d3022976150b8))
+* prenotazione bloccata da "JSON Parse error: Unexpected character: v" ([bdcdab9](https://github.com/mariocostabile/CusApp/commit/bdcdab9256307ba80eb35e166b8c350580fbc994))
+
 ## [2.8.0](https://github.com/mariocostabile/CusApp/compare/v2.7.1...v2.8.0) (2026-11-06)
 
 
