@@ -83,9 +83,9 @@ L'applicazione trasforma la gestione delle prenotazioni della palestra in un'esp
 - **Sblocco**: Il pulsante *Accedi* (header o card) apre il login; dopo l'accesso tutte le funzioni sono disponibili.
 
 ### 🚀 7. Aggiornamenti Automatici In-App
-- **Nessuno store**: All'avvio l'app controlla l'ultima [GitHub Release](https://github.com/mariocostabile/CusApp/releases) del repository e, se c'è una versione più recente, mostra un popup.
-- **Aggiorna ora / Più tardi**: Download dell'APK con avanzamento e apertura dell'installer di Android; il popup ricompare al prossimo avvio finché non si aggiorna.
-- **Aggiornamenti obbligatori**: Se le note della release contengono `[obbligatorio]`, il popup non si può chiudere.
+- **Nessuno store**: All'avvio e ogni volta che si torna nell'app, questa controlla l'ultima [GitHub Release](https://github.com/mariocostabile/CusApp/releases) del repository e, se c'è una versione più recente, mostra un popup.
+- **Aggiorna ora / Più tardi**: Download dell'APK con avanzamento e apertura dell'installer di Android. Dopo "Più tardi" la stessa versione non viene riproposta finché l'app resta aperta; il popup ricompare al prossimo avvio finché non si aggiorna.
+- **Aggiornamenti obbligatori**: Se le note della release contengono `[obbligatorio]`, il popup non si può chiudere né rimandare: senza aggiornare l'app non si usa.
 - **Sicurezza**: Vengono accettati solo APK scaricati dalle release di questo repository, firmati con la stessa chiave dell'app installata.
 
 ---
@@ -231,7 +231,7 @@ CusApp/
 │       ├── ginnipalService.ts     # Client bridge per chiamate dirette/proxy
 │       ├── googleCrowdService.ts  # Servizio analitico affluenza Google Maps con caching
 │       ├── updateRelease.ts       # Logica pura aggiornamenti (versioni, validazione release)
-│       ├── updateService.ts       # Controllo dell'ultima GitHub Release all'avvio
+│       ├── updateService.ts       # Controllo dell'ultima GitHub Release
 │       └── updateInstaller.ts     # Download dell'APK e apertura dell'installer Android
 ├── app.json                     # Configurazione dell'applicazione Expo (icon, splash, permissions)
 ├── app.config.js                # Calcola android.versionCode dalla versione

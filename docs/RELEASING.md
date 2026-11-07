@@ -60,8 +60,10 @@ Il versionamento è gestito da **release-please**: non modificare mai a mano la 
    - `feat!: ...` o footer `BREAKING CHANGE:` → major
    - `chore:`, `docs:`, `refactor:`, `style:`, `test:`, `ci:` → nessun rilascio
    I messaggi `fix`/`feat` finiscono nelle note del popup: scrivili in italiano, chiari per l'utente finale.
-2. Merge su `master` (solo con il consenso dell'utente). release-please apre o aggiorna la
-   Release PR `chore(master): release X.Y.Z`.
+2. Merge su `master` (solo con il consenso dell'utente), sempre **squash** (`gh pr merge <n> --squash`): il repo
+   accetta solo squash con il titolo della PR come messaggio. Un merge commit ripeterebbe il titolo `fix:`/`feat:`
+   e release-please lo conterebbe due volte. Il titolo della PR diventa la riga nelle note del popup.
+   release-please apre o aggiorna la Release PR `chore(master): release X.Y.Z`.
 3. Rilascio = merge della Release PR (solo su richiesta esplicita dell'utente). Il workflow crea il tag
    `vX.Y.Z`, la GitHub Release e allega `CusCosenza-vX.Y.Z.apk` firmato.
 4. Verifica: `gh release view vX.Y.Z -R mariocostabile/CusApp` deve elencare un asset `.apk`.
