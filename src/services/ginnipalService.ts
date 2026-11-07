@@ -62,6 +62,11 @@ export const FALLBACK_DASHBOARD_DATA: DashboardData = {
   reservations: [],
 };
 
+// Initialize responses are JS ("var initialData = {...};"), not plain JSON.
+function parseInitialData(text: string): any {
+  return JSON.parse(text.replace(/^var initialData\s*=\s*/, '').replace(/;\s*$/, ''));
+}
+
 function decodeHtml(html: string): string {
   return html
     .replace(/&#160;/g, ' ')
@@ -310,8 +315,7 @@ async function initSubForm(
 
   let initControls: any = {};
   try {
-    const cleanInitJson = step4.text.replace(/^var initialData\s*=\s*/, '').replace(/;$/, '');
-    const parsedInit = JSON.parse(cleanInitJson);
+    const parsedInit = parseInitialData(step4.text);
     initControls = parsedInit.actions?.[0]?.controls || {};
   } catch (e) {
     if (__DEV__) {
@@ -328,8 +332,7 @@ async function initSubForm(
 
   let subInitControls: any = {};
   try {
-    const cleanSubJson = step5.text.replace(/^var initialData\s*=\s*/, '').replace(/;$/, '');
-    const parsedSub = JSON.parse(cleanSubJson);
+    const parsedSub = parseInitialData(step5.text);
     subInitControls = parsedSub.actions?.[0]?.controls || {};
   } catch (e) {
     if (__DEV__) {
@@ -524,7 +527,7 @@ async function openBookingForm(email: string, password: string) {
     {},
     jar
   );
-  const formControls = (JSON.parse(formRes.text).actions || []).reduce(
+  const formControls = (parseInitialData(formRes.text).actions || []).reduce(
     (acc: Record<string, any>, action: any) => Object.assign(acc, action.controls || {}),
     {}
   );
