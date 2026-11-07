@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.2](https://github.com/mariocostabile/CusApp/compare/v2.8.1...v2.8.2) (2026-11-07)
+
+
+### Correzioni
+
+* popup di aggiornamento anche tornando nell'app, senza doverla riavviare ([#13](https://github.com/mariocostabile/CusApp/issues/13)) ([329ef01](https://github.com/mariocostabile/CusApp/commit/329ef017230472ec6519b741d0112c46e14c3c9d))
+
 ## [2.8.1](https://github.com/mariocostabile/CusApp/compare/v2.8.0...v2.8.1) (2026-11-07)
 
 
