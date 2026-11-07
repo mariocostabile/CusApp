@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Linking } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, Linking } from 'react-native';
 import { AppDialog, type AppDialogAction } from '@/components/app-dialog';
 import { checkForUpdate, type AvailableUpdate } from '@/services/updateService';
 import { downloadAndInstall } from '@/services/updateInstaller';
@@ -12,9 +12,20 @@ type Phase =
 export function UpdatePrompt() {
   const [update, setUpdate] = useState<AvailableUpdate | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: 'ready' });
+  // "Più tardi" vale per tutta la sessione: la stessa versione non ricompare a ogni ritorno nell'app.
+  const dismissedVersion = useRef<string | null>(null);
 
   useEffect(() => {
-    checkForUpdate().then(setUpdate);
+    const check = () =>
+      checkForUpdate().then((next) => {
+        if (next && next.version !== dismissedVersion.current) setUpdate((prev) => prev ?? next);
+      });
+    check();
+    // Ricontrolla anche al ritorno in primo piano, non solo all'avvio a freddo.
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') check();
+    });
+    return () => sub.remove();
   }, []);
 
   if (!update) return null;
@@ -69,7 +80,9 @@ export function UpdatePrompt() {
       actions={actions}
       dismissible={dismissible}
       onClose={() => {
-        if (dismissible) setUpdate(null);
+        if (!dismissible) return;
+        dismissedVersion.current = update.version;
+        setUpdate(null);
       }}
     />
   );
