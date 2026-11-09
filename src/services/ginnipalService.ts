@@ -927,8 +927,8 @@ export async function cancelLiveReservation(
 }
 
 export interface SlotAvailability {
-  /** Periods that still have free places, ISO local times ("2026-11-06T20:00:00"). */
-  periods: { start: string; end: string }[];
+  /** Periods GinniPAL marks "OCCUPATO" (no free places), ISO local times ("2026-11-06T20:00:00"). */
+  full: { start: string; end: string }[];
   /** Last day (YYYY-MM-DD) covered by GinniPAL's booking calendar. */
   windowEnd: string;
 }
@@ -946,19 +946,23 @@ export async function fetchSlotAvailability(
   try {
     const { formControls } = await openBookingForm(email, password);
     const cal = formControls.calTabellone || {};
-    const periods = (cal.availablePeriods || []).map((p: any) => ({ start: p.start, end: p.end }));
-    const days = [...periods, ...(cal.calendarEvents || [])]
+    // availablePeriods are the opening hours, not the free places: full slots come as "OCCUPATO" events.
+    const events = cal.calendarEvents || [];
+    const full = events
+      .filter((e: any) => String(e.title || '').trim().toUpperCase() === 'OCCUPATO')
+      .map((e: any) => ({ start: e.start, end: e.end }));
+    const days = [...(cal.availablePeriods || []), ...events]
       .map((e: any) => String(e.start || '').slice(0, 10))
       .filter(Boolean)
       .sort();
-    return { periods, windowEnd: days[days.length - 1] || '' };
+    return { full, windowEnd: days[days.length - 1] || '' };
   } catch {
     return null;
   }
 }
 
 /**
- * True when GinniPAL lists no free period covering the slot ("18:00 - 20:00") on dateStr ("dd/mm/yyyy").
+ * True when a GinniPAL "OCCUPATO" period overlaps the slot ("18:00 - 20:00") on dateStr ("dd/mm/yyyy").
  * Days past the calendar window are never marked full: no data there.
  */
 export function isSlotFull(slot: string, dateStr: string, availability: SlotAvailability | null): boolean {
@@ -969,5 +973,5 @@ export function isSlotFull(slot: string, dateStr: string, availability: SlotAvai
   const [from, to] = slot.split(' - ').map((t) => t.trim().padStart(5, '0'));
   const slotStart = `${iso}T${from}:00`;
   const slotEnd = `${iso}T${to}:00`;
-  return !availability.periods.some((p) => p.start <= slotStart && p.end >= slotEnd);
+  return availability.full.some((p) => p.start < slotEnd && p.end > slotStart);
 }
