@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.3](https://github.com/mariocostabile/CusApp/compare/v2.8.2...v2.8.3) (2026-11-09)
+
+
+### Correzioni
+
+* turni pieni di nuovo segnati come "Pieno" nelle pillole di prenotazione ([#15](https://github.com/mariocostabile/CusApp/issues/15)) ([b37f156](https://github.com/mariocostabile/CusApp/commit/b37f156d00401e1e46f589e72c7ba150ee48c0cd))
+
 ## [2.8.2](https://github.com/mariocostabile/CusApp/compare/v2.8.1...v2.8.2) (2026-11-07)
 
 
