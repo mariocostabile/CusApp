@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2026-11-13T14:01:44.604Z",
+  "lastUpdated": "2026-11-13T15:01:50.729Z",
   "placeName": "CUS Unical - Centro Universitario Sportivo Cosenza",
   "googleMapsUrl": "https://www.google.com/maps/place/CUS+Unical/@39.3576258,16.2169142,17z?hl=it",
   "isLiveActive": true,
-  "currentPercent": 30,
-  "currentTypical": 30,
-  "comparisonStatus": "Consueto",
+  "currentPercent": 45,
+  "currentTypical": 45,
+  "comparisonStatus": "Meno affollato del solito",
   "weeklyData": {
     "lunedi": {
       "name": "Lunedì",
@@ -578,8 +578,7 @@
           "level": "Calmo",
           "color": "#10B981",
           "comparisonStatus": "Consueto",
-          "description": "Flusso contenuto.",
-          "isLive": true
+          "description": "Flusso contenuto."
         },
         {
           "hour": 16,
@@ -588,8 +587,9 @@
           "typical": 45,
           "level": "Moderato",
           "color": "#F59E0B",
-          "comparisonStatus": "Consueto",
-          "description": "Aumento regolare presenze."
+          "comparisonStatus": "Meno affollato del solito",
+          "description": "Aumento regolare presenze.",
+          "isLive": true
         },
         {
           "hour": 17,
