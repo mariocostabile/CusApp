@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchLiveGoogleCrowd, BASELINE_WEEKLY } from '../services/googleCrowdService';
-import { getCrowdLevel, getExtremeRange, getLiveTrend } from '../services/crowdInsights';
+import { getCrowdLevel, getExtremeRange, getLiveTrend, getSlotCrowdLevel, type CrowdTone } from '../services/crowdInsights';
 import {
   fetchLiveGinnipalData,
   bookLiveReservation,
@@ -71,21 +71,26 @@ export interface BookingSlotOption {
   slot: string;
   category: 'mattina' | 'pomeriggio' | 'sera';
   periodLabel: string;
-  crowdLevel?: string;
-  crowdColor?: string;
 }
 
 const WEEKDAY_BOOKING_SLOTS: BookingSlotOption[] = [
   // Mattina
-  { slot: '10:00 - 12:00', category: 'mattina', periodLabel: '1° Turno', crowdLevel: 'Calmo (~20%)', crowdColor: '#10B981' },
-  { slot: '12:00 - 14:00', category: 'mattina', periodLabel: '2° Turno', crowdLevel: 'Molto Calmo (~18%)', crowdColor: '#10B981' },
+  { slot: '10:00 - 12:00', category: 'mattina', periodLabel: '1° Turno' },
+  { slot: '12:00 - 14:00', category: 'mattina', periodLabel: '2° Turno' },
   // Pomeriggio
-  { slot: '14:00 - 16:00', category: 'pomeriggio', periodLabel: '3° Turno', crowdLevel: 'Calmo (~25%)', crowdColor: '#10B981' },
-  { slot: '16:00 - 18:00', category: 'pomeriggio', periodLabel: '4° Turno', crowdLevel: 'Moderato (~45%)', crowdColor: '#F59E0B' },
+  { slot: '14:00 - 16:00', category: 'pomeriggio', periodLabel: '3° Turno' },
+  { slot: '16:00 - 18:00', category: 'pomeriggio', periodLabel: '4° Turno' },
   // Sera
-  { slot: '18:00 - 20:00', category: 'sera', periodLabel: '5° Turno', crowdLevel: 'Alta Richiesta (~80%)', crowdColor: '#EF4444' },
-  { slot: '20:00 - 22:00', category: 'sera', periodLabel: '6° Turno', crowdLevel: 'In Calo (~60%)', crowdColor: '#F59E0B' },
+  { slot: '18:00 - 20:00', category: 'sera', periodLabel: '5° Turno' },
+  { slot: '20:00 - 22:00', category: 'sera', periodLabel: '6° Turno' },
 ];
+
+// Booking pills keep their own green/amber/red palette; the word comes from the Home card's scale
+const CROWD_PILL_COLORS: Record<CrowdTone, { dotColor: string; bgColor: string; textColor: string }> = {
+  calm: { dotColor: '#16A34A', bgColor: '#DCFCE7', textColor: '#166534' },
+  moderate: { dotColor: '#D97706', bgColor: '#FEF3C7', textColor: '#92400E' },
+  busy: { dotColor: '#DC2626', bgColor: '#FEE2E2', textColor: '#991B1B' },
+};
 
 const SATURDAY_BOOKING_SLOTS: BookingSlotOption[] = [
   { slot: '10:00 - 12:00', category: 'mattina', periodLabel: '1° Turno Mattina' },
@@ -596,54 +601,26 @@ export default function App() {
       const d = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
       const dayMap = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
       const dayKey = dayMap[d.getDay()];
-      const dayData = crowdWeeklyData[dayKey];
-      if (dayData && dayData.hours) {
-        const startHour = parseInt(slot.split(':')[0], 10);
-        const hoursInSlot = dayData.hours.filter((h) => h.hour >= startHour && h.hour < startHour + 2);
-        if (hoursInSlot.length > 0) {
-          const avgPercent = Math.round(
-            hoursInSlot.reduce((sum, h) => sum + (h.percent || 0), 0) / hoursInSlot.length
-          );
-          if (avgPercent >= 70) {
-            return {
-              label: `Alta (~${avgPercent}%)`,
-              shortLabel: `Alta (~${avgPercent}%)`,
-              badgeText: 'Affollato',
-              dotColor: '#DC2626',
-              bgColor: '#FEE2E2',
-              textColor: '#991B1B',
-            };
-          } else if (avgPercent >= 40) {
-            return {
-              label: `Media (~${avgPercent}%)`,
-              shortLabel: `Media (~${avgPercent}%)`,
-              badgeText: 'Moderato',
-              dotColor: '#D97706',
-              bgColor: '#FEF3C7',
-              textColor: '#92400E',
-            };
-          } else {
-            return {
-              label: `Calma (~${avgPercent}%)`,
-              shortLabel: `Calma (~${avgPercent}%)`,
-              badgeText: 'Calmo',
-              dotColor: '#16A34A',
-              bgColor: '#DCFCE7',
-              textColor: '#166534',
-            };
-          }
-        }
-      }
+      const crowd = getSlotCrowdLevel(crowdWeeklyData[dayKey]?.hours || [], parseInt(slot.split(':')[0], 10));
+      if (crowd) return { level: crowd.level, ...CROWD_PILL_COLORS[crowd.tone] };
     }
-    return {
-      label: 'Calma',
-      shortLabel: 'Calma',
-      badgeText: 'Calmo',
-      dotColor: '#16A34A',
-      bgColor: '#DCFCE7',
-      textColor: '#166534',
-    };
+    return null;
   };
+
+  // Shown only on bookable slots; no pill when Google has no data for the slot (Saturday)
+  const renderCrowdPill = (slot: string) => {
+    const crowd = getSlotDynamicCrowd(slot, selectedDay);
+    if (!crowd) return null;
+    return (
+      <View style={[styles.crowdPill, { backgroundColor: crowd.bgColor }]}>
+        <View style={[styles.crowdDotSmall, { backgroundColor: crowd.dotColor }]} />
+        <Text style={[styles.crowdPillText, { color: crowd.textColor }]}>{crowd.level}</Text>
+      </View>
+    );
+  };
+
+  const selectedSlotCrowd =
+    selectedSlot && isSelectedSlotBookable ? getSlotDynamicCrowd(selectedSlot, selectedDay) : null;
 
   const handleSelectBookingDay = (dayDate: string) => {
     setSelectedDay(dayDate);
@@ -1203,7 +1180,7 @@ export default function App() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View>
-              <Text style={styles.cardSubHeader}>MONITORAGGIO IN TEMPO REALE</Text>
+              <Text style={styles.cardSubHeader}>MONITORAGGIO AFFLUENZA</Text>
               <Text style={styles.cardMainTitle}>Stima Affluenza Sala Pesi</Text>
               <Text style={styles.cardSubLocation}>CUS Unical • Dati Google Maps</Text>
             </View>
@@ -1616,12 +1593,7 @@ export default function App() {
                                 <Text style={styles.slotBookedText}>Già prenotato</Text>
                               </View>
                             ) : isBookable ? (
-                              <View style={[styles.crowdPill, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).bgColor }]}>
-                                <View style={[styles.crowdDotSmall, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).dotColor }]} />
-                                <Text style={[styles.crowdPillText, { color: getSlotDynamicCrowd(item.slot, selectedDay).textColor }]}>
-                                  {getSlotDynamicCrowd(item.slot, selectedDay).badgeText}
-                                </Text>
-                              </View>
+                              renderCrowdPill(item.slot)
                             ) : (
                               <View style={styles.slotDisabledPill}>
                                 <Text style={styles.slotDisabledText}>{isFull ? 'Pieno' : 'Non disp.'}</Text>
@@ -1707,12 +1679,7 @@ export default function App() {
                                   <Text style={styles.slotBookedText}>Già prenotato</Text>
                                 </View>
                               ) : isBookable ? (
-                                <View style={[styles.crowdPill, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).bgColor }]}>
-                                  <View style={[styles.crowdDotSmall, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).dotColor }]} />
-                                  <Text style={[styles.crowdPillText, { color: getSlotDynamicCrowd(item.slot, selectedDay).textColor }]}>
-                                    {getSlotDynamicCrowd(item.slot, selectedDay).badgeText}
-                                  </Text>
-                                </View>
+                                renderCrowdPill(item.slot)
                               ) : (
                                 <View style={styles.slotDisabledPill}>
                                   <Text style={styles.slotDisabledText}>{isFull ? 'Pieno' : 'Non disp.'}</Text>
@@ -1791,12 +1758,7 @@ export default function App() {
                                   <Text style={styles.slotBookedText}>Già prenotato</Text>
                                 </View>
                               ) : isBookable ? (
-                                <View style={[styles.crowdPill, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).bgColor }]}>
-                                  <View style={[styles.crowdDotSmall, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).dotColor }]} />
-                                  <Text style={[styles.crowdPillText, { color: getSlotDynamicCrowd(item.slot, selectedDay).textColor }]}>
-                                    {getSlotDynamicCrowd(item.slot, selectedDay).badgeText}
-                                  </Text>
-                                </View>
+                                renderCrowdPill(item.slot)
                               ) : (
                                 <View style={styles.slotDisabledPill}>
                                   <Text style={styles.slotDisabledText}>{isFull ? 'Pieno' : 'Non disp.'}</Text>
@@ -1875,12 +1837,7 @@ export default function App() {
                                   <Text style={styles.slotBookedText}>Già prenotato</Text>
                                 </View>
                               ) : isBookable ? (
-                                <View style={[styles.crowdPill, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).bgColor }]}>
-                                  <View style={[styles.crowdDotSmall, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).dotColor }]} />
-                                  <Text style={[styles.crowdPillText, { color: getSlotDynamicCrowd(item.slot, selectedDay).textColor }]}>
-                                    {getSlotDynamicCrowd(item.slot, selectedDay).badgeText}
-                                  </Text>
-                                </View>
+                                renderCrowdPill(item.slot)
                               ) : (
                                 <View style={styles.slotDisabledPill}>
                                   <Text style={styles.slotDisabledText}>{isFull ? 'Pieno' : 'Non disp.'}</Text>
@@ -1940,14 +1897,12 @@ export default function App() {
                     <Text
                       style={[
                         styles.summaryItemValue,
-                        selectedSlot && isSelectedSlotBookable
-                          ? { color: getSlotDynamicCrowd(selectedSlot, selectedDay).dotColor, fontWeight: '700' }
+                        selectedSlotCrowd
+                          ? { color: selectedSlotCrowd.dotColor, fontWeight: '700' }
                           : { color: '#94A3B8', fontWeight: '500' },
                       ]}
                     >
-                      {selectedSlot && isSelectedSlotBookable
-                        ? getSlotDynamicCrowd(selectedSlot, selectedDay).label
-                        : '—'}
+                      {selectedSlotCrowd ? selectedSlotCrowd.level : '—'}
                     </Text>
                   </View>
 

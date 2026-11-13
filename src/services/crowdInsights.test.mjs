@@ -1,6 +1,35 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { getLiveTrend, getExtremeRange, getCrowdLevel } from './crowdInsights.ts';
+import { getLiveTrend, getExtremeRange, getCrowdLevel, getSlotCrowdLevel } from './crowdInsights.ts';
+
+test('getSlotCrowdLevel fa la media di typical sulle 2 ore del turno, ignorando percent', () => {
+  const hours = [
+    { hour: 15, typical: 10, percent: 99 },
+    { hour: 16, typical: 45, percent: 99 },
+    { hour: 17, typical: 82, percent: 99 },
+    { hour: 18, typical: 10, percent: 99 },
+  ];
+  // (45 + 82) / 2 = 63.5 → 64: "Affollato", pillola rossa
+  assert.deepEqual(getSlotCrowdLevel(hours, 16), getCrowdLevel(64));
+  assert.equal(getSlotCrowdLevel(hours, 16).level, 'Affollato');
+  assert.equal(getSlotCrowdLevel(hours, 16).tone, 'busy');
+  // solo un'ora disponibile nel turno: usa quella
+  assert.equal(getSlotCrowdLevel(hours, 18).level, 'Molto calmo');
+});
+
+test('getSlotCrowdLevel restituisce null senza dati (sabato)', () => {
+  assert.equal(getSlotCrowdLevel([], 10), null);
+  assert.equal(getSlotCrowdLevel([{ hour: 18, typical: 50 }], 10), null);
+});
+
+test('getCrowdLevel raggruppa i 5 livelli nei 3 colori delle pillole', () => {
+  assert.equal(getCrowdLevel(10).tone, 'calm');
+  assert.equal(getCrowdLevel(39).tone, 'calm');
+  assert.equal(getCrowdLevel(40).tone, 'moderate');
+  assert.equal(getCrowdLevel(59).tone, 'moderate');
+  assert.equal(getCrowdLevel(60).tone, 'busy');
+  assert.equal(getCrowdLevel(95).tone, 'busy');
+});
 
 test('getLiveTrend legge il testo di Google senza distinguere maiuscole', () => {
   assert.equal(getLiveTrend('Meno affollato del solito').kind, 'less');
