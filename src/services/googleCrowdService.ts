@@ -180,15 +180,6 @@ async function fetchWithTimeout(url: string, timeoutMs: number = 3500): Promise<
   }
 }
 
-export function getCrowdLevelAndColor(percent: number): { level: string; color: string } {
-  if (percent >= 80) return { level: 'Picco Massimo', color: '#EF4444' };
-  if (percent >= 65) return { level: 'Molto Affollato', color: '#EF4444' };
-  if (percent >= 50) return { level: 'Affollato', color: '#F97316' };
-  if (percent >= 35) return { level: 'Moderato', color: '#F59E0B' };
-  if (percent >= 20) return { level: 'Calmo', color: '#10B981' };
-  return { level: 'Molto Calmo', color: '#10B981' };
-}
-
 const isStr = (v: unknown) => typeof v === 'string';
 const isNum = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
 
