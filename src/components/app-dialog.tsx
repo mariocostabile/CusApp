@@ -18,6 +18,8 @@ type AppDialogProps = {
   icon?: string;
   /** Se false il tasto indietro di Android non chiude il dialog. */
   dismissible?: boolean;
+  /** Contenuto extra tra il messaggio e i pulsanti (es. barra di avanzamento). */
+  children?: ReactNode;
 };
 
 export function AppDialog({
@@ -28,6 +30,7 @@ export function AppDialog({
   onClose,
   icon = '⚠️',
   dismissible = true,
+  children,
 }: AppDialogProps) {
   return (
     <Modal
@@ -47,6 +50,8 @@ export function AppDialog({
           <Text style={styles.title}>{title}</Text>
 
           <Text style={styles.desc}>{message}</Text>
+
+          {children}
 
           <View style={styles.actions}>
             {actions.map((action) => {
