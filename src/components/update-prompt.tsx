@@ -1,8 +1,9 @@
+import Constants from 'expo-constants';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Linking, StyleSheet, View } from 'react-native';
 import { AppDialog, type AppDialogAction } from '@/components/app-dialog';
 import { checkForUpdate, type AvailableUpdate } from '@/services/updateService';
-import { downloadAndInstall } from '@/services/updateInstaller';
+import { cleanupApks, downloadAndInstall, isApkDownloaded } from '@/services/updateInstaller';
 
 type Phase =
   | { kind: 'ready' }
@@ -16,6 +17,8 @@ export function UpdatePrompt() {
   const dismissedVersion = useRef<string | null>(null);
 
   useEffect(() => {
+    // Solo all'avvio: al ritorno in primo piano un download in corso ha un .part che non va cancellato.
+    cleanupApks(Constants.expoConfig?.version ?? '');
     const check = () =>
       checkForUpdate().then((next) => {
         if (next && next.version !== dismissedVersion.current) setUpdate((prev) => prev ?? next);
@@ -66,6 +69,10 @@ export function UpdatePrompt() {
       },
       ...later,
     ];
+  } else if (isApkDownloaded(update.version)) {
+    message =
+      "L'aggiornamento è già scaricato: premi Installa per completarlo.\n\nSe Android lo chiede, consenti a CusApp di installare app sconosciute.";
+    actions = [{ label: 'Installa', variant: 'danger', keepOpen: true, onPress: install }, ...later];
   } else {
     message = `${update.notes || "È disponibile una nuova versione dell'app."}\n\nSe Android lo chiede, consenti a CusApp di installare app sconosciute.`;
     actions = [{ label: 'Aggiorna ora', variant: 'danger', keepOpen: true, onPress: install }, ...later];

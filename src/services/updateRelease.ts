@@ -91,3 +91,16 @@ export function downloadFraction(
   const total = totalBytes > 0 ? totalBytes : apkSize;
   return total ? Math.min(1, bytesWritten / total) : null;
 }
+
+const APK_FILE_NAME = /^CusCosenza-(\d+\.\d+\.\d+)\.apk(\.part)?$/;
+
+/** APK in cache da cancellare: download interrotti (.part) e versioni già installate. Altri file mai toccati. */
+export function staleApkNames(names: string[], currentVersion: string): string[] {
+  const validCurrent = parseVersion(currentVersion) !== null;
+  return names.filter((name) => {
+    const match = APK_FILE_NAME.exec(name);
+    if (!match) return false;
+    if (match[2]) return true;
+    return validCurrent && !isNewer(match[1], currentVersion);
+  });
+}
