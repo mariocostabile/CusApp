@@ -9,10 +9,12 @@ export type AvailableUpdate = {
   version: string;
   notes: string;
   apkUrl: string;
+  /** Byte dell'APK secondo GitHub: totale di riserva se il server di download non manda Content-Length. */
+  apkSize: number | null;
   mandatory: boolean;
 };
 
-type ReleaseAsset = { name?: unknown; browser_download_url?: unknown } | null;
+type ReleaseAsset = { name?: unknown; browser_download_url?: unknown; size?: unknown } | null;
 
 export function parseVersion(version: string): number[] | null {
   const match = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(version.trim());
@@ -69,11 +71,23 @@ export function parseRelease(release: unknown, currentVersion: string): Availabl
   // Apriamo solo download del nostro repo, mai URL arbitrari presi dalla risposta.
   if (typeof apkUrl !== 'string' || !apkUrl.startsWith(REPO_DOWNLOAD_PREFIX)) return null;
 
+  const size = apk?.size;
   const text = typeof body === 'string' ? body : '';
   return {
     version: version.join('.'),
     notes: cleanNotes(text),
     apkUrl,
+    apkSize: typeof size === 'number' && Number.isInteger(size) && size > 0 ? size : null,
     mandatory: MANDATORY_MARKER.test(text),
   };
+}
+
+/** Frazione 0..1 del download, oppure null se nessuna dimensione è nota. */
+export function downloadFraction(
+  bytesWritten: number,
+  totalBytes: number,
+  apkSize: number | null,
+): number | null {
+  const total = totalBytes > 0 ? totalBytes : apkSize;
+  return total ? Math.min(1, bytesWritten / total) : null;
 }

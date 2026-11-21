@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseVersion, isNewer, cleanNotes, parseRelease } from './updateRelease.ts';
+import { parseVersion, isNewer, cleanNotes, parseRelease, downloadFraction } from './updateRelease.ts';
 
 const APK_URL = 'https://github.com/mariocostabile/CusApp/releases/download/v2.7.0/CusCosenza-v2.7.0.apk';
 
@@ -24,7 +24,7 @@ function release(overrides = {}) {
     draft: false,
     prerelease: false,
     body: RELEASE_BODY,
-    assets: [{ name: 'CusCosenza-v2.7.0.apk', browser_download_url: APK_URL }],
+    assets: [{ name: 'CusCosenza-v2.7.0.apk', browser_download_url: APK_URL, size: 52_428_800 }],
     ...overrides,
   };
 }
@@ -63,6 +63,7 @@ test('parseRelease restituisce l\'aggiornamento se la versione è più nuova', (
     version: '2.7.0',
     notes: "Novità:\n\n• nuovo calendario partite\n\nCorrezioni:\n\n• login: risolto crash all'avvio",
     apkUrl: APK_URL,
+    apkSize: 52_428_800,
     mandatory: false,
   });
 });
@@ -92,4 +93,19 @@ test('parseRelease tollera risposte inattese', () => {
   assert.equal(parseRelease('oops', '2.6.5'), null);
   assert.equal(parseRelease({ message: 'API rate limit exceeded' }, '2.6.5'), null);
   assert.equal(parseRelease(release({ assets: [null, { name: 1 }] }), '2.6.5'), null);
+});
+
+test('parseRelease mette apkSize a null se size non è un intero positivo', () => {
+  for (const size of [undefined, 0, -1, 1.5, '100']) {
+    const assets = [{ name: 'CusCosenza-v2.7.0.apk', browser_download_url: APK_URL, size }];
+    assert.equal(parseRelease(release({ assets }), '2.6.5').apkSize, null);
+  }
+});
+
+test('downloadFraction usa il totale del server, poi apkSize, altrimenti null', () => {
+  assert.equal(downloadFraction(50, 200, 100), 0.25);
+  assert.equal(downloadFraction(50, 0, 100), 0.5);
+  assert.equal(downloadFraction(50, -1, 100), 0.5);
+  assert.equal(downloadFraction(50, 0, null), null);
+  assert.equal(downloadFraction(150, 0, 100), 1);
 });
