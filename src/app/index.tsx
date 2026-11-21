@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchLiveGoogleCrowd, BASELINE_WEEKLY } from '../services/googleCrowdService';
-import { getExtremeRange } from '../services/crowdInsights';
+import { getCrowdLevel, getExtremeRange, getLiveTrend, getSlotCrowdLevel, type CrowdTone } from '../services/crowdInsights';
 import {
   fetchLiveGinnipalData,
   bookLiveReservation,
@@ -71,21 +71,26 @@ export interface BookingSlotOption {
   slot: string;
   category: 'mattina' | 'pomeriggio' | 'sera';
   periodLabel: string;
-  crowdLevel?: string;
-  crowdColor?: string;
 }
 
 const WEEKDAY_BOOKING_SLOTS: BookingSlotOption[] = [
   // Mattina
-  { slot: '10:00 - 12:00', category: 'mattina', periodLabel: '1° Turno', crowdLevel: 'Calmo (~20%)', crowdColor: '#10B981' },
-  { slot: '12:00 - 14:00', category: 'mattina', periodLabel: '2° Turno', crowdLevel: 'Molto Calmo (~18%)', crowdColor: '#10B981' },
+  { slot: '10:00 - 12:00', category: 'mattina', periodLabel: '1° Turno' },
+  { slot: '12:00 - 14:00', category: 'mattina', periodLabel: '2° Turno' },
   // Pomeriggio
-  { slot: '14:00 - 16:00', category: 'pomeriggio', periodLabel: '3° Turno', crowdLevel: 'Calmo (~25%)', crowdColor: '#10B981' },
-  { slot: '16:00 - 18:00', category: 'pomeriggio', periodLabel: '4° Turno', crowdLevel: 'Moderato (~45%)', crowdColor: '#F59E0B' },
+  { slot: '14:00 - 16:00', category: 'pomeriggio', periodLabel: '3° Turno' },
+  { slot: '16:00 - 18:00', category: 'pomeriggio', periodLabel: '4° Turno' },
   // Sera
-  { slot: '18:00 - 20:00', category: 'sera', periodLabel: '5° Turno', crowdLevel: 'Alta Richiesta (~80%)', crowdColor: '#EF4444' },
-  { slot: '20:00 - 22:00', category: 'sera', periodLabel: '6° Turno', crowdLevel: 'In Calo (~60%)', crowdColor: '#F59E0B' },
+  { slot: '18:00 - 20:00', category: 'sera', periodLabel: '5° Turno' },
+  { slot: '20:00 - 22:00', category: 'sera', periodLabel: '6° Turno' },
 ];
+
+// Booking pills keep their own green/amber/red palette; the word comes from the Home card's scale
+const CROWD_PILL_COLORS: Record<CrowdTone, { dotColor: string; bgColor: string; textColor: string }> = {
+  calm: { dotColor: '#16A34A', bgColor: '#DCFCE7', textColor: '#166534' },
+  moderate: { dotColor: '#D97706', bgColor: '#FEF3C7', textColor: '#92400E' },
+  busy: { dotColor: '#DC2626', bgColor: '#FEE2E2', textColor: '#991B1B' },
+};
 
 const SATURDAY_BOOKING_SLOTS: BookingSlotOption[] = [
   { slot: '10:00 - 12:00', category: 'mattina', periodLabel: '1° Turno Mattina' },
@@ -550,6 +555,8 @@ export default function App() {
     activeCrowdList.find((h) => h.hour === currentHour) ||
     activeCrowdList.find((h) => Math.abs(h.hour - currentHour) <= 1) ||
     activeCrowdList[0];
+  const liveTrend = getLiveTrend(liveCrowdItem?.comparisonStatus);
+  const nowTypical = getCrowdLevel(liveCrowdItem?.typical ?? 0);
   const dayPeak = getExtremeRange(activeCrowdList, 'max');
   const dayCalm = getExtremeRange(activeCrowdList, 'min');
 
@@ -594,54 +601,26 @@ export default function App() {
       const d = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
       const dayMap = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
       const dayKey = dayMap[d.getDay()];
-      const dayData = crowdWeeklyData[dayKey];
-      if (dayData && dayData.hours) {
-        const startHour = parseInt(slot.split(':')[0], 10);
-        const hoursInSlot = dayData.hours.filter((h) => h.hour >= startHour && h.hour < startHour + 2);
-        if (hoursInSlot.length > 0) {
-          const avgPercent = Math.round(
-            hoursInSlot.reduce((sum, h) => sum + (h.percent || 0), 0) / hoursInSlot.length
-          );
-          if (avgPercent >= 70) {
-            return {
-              label: `Alta (~${avgPercent}%)`,
-              shortLabel: `Alta (~${avgPercent}%)`,
-              badgeText: 'Affollato',
-              dotColor: '#DC2626',
-              bgColor: '#FEE2E2',
-              textColor: '#991B1B',
-            };
-          } else if (avgPercent >= 40) {
-            return {
-              label: `Media (~${avgPercent}%)`,
-              shortLabel: `Media (~${avgPercent}%)`,
-              badgeText: 'Moderato',
-              dotColor: '#D97706',
-              bgColor: '#FEF3C7',
-              textColor: '#92400E',
-            };
-          } else {
-            return {
-              label: `Calma (~${avgPercent}%)`,
-              shortLabel: `Calma (~${avgPercent}%)`,
-              badgeText: 'Calmo',
-              dotColor: '#16A34A',
-              bgColor: '#DCFCE7',
-              textColor: '#166534',
-            };
-          }
-        }
-      }
+      const crowd = getSlotCrowdLevel(crowdWeeklyData[dayKey]?.hours || [], parseInt(slot.split(':')[0], 10));
+      if (crowd) return { level: crowd.level, ...CROWD_PILL_COLORS[crowd.tone] };
     }
-    return {
-      label: 'Calma',
-      shortLabel: 'Calma',
-      badgeText: 'Calmo',
-      dotColor: '#16A34A',
-      bgColor: '#DCFCE7',
-      textColor: '#166534',
-    };
+    return null;
   };
+
+  // Shown only on bookable slots; no pill when Google has no data for the slot (Saturday)
+  const renderCrowdPill = (slot: string) => {
+    const crowd = getSlotDynamicCrowd(slot, selectedDay);
+    if (!crowd) return null;
+    return (
+      <View style={[styles.crowdPill, { backgroundColor: crowd.bgColor }]}>
+        <View style={[styles.crowdDotSmall, { backgroundColor: crowd.dotColor }]} />
+        <Text style={[styles.crowdPillText, { color: crowd.textColor }]}>{crowd.level}</Text>
+      </View>
+    );
+  };
+
+  const selectedSlotCrowd =
+    selectedSlot && isSelectedSlotBookable ? getSlotDynamicCrowd(selectedSlot, selectedDay) : null;
 
   const handleSelectBookingDay = (dayDate: string) => {
     setSelectedDay(dayDate);
@@ -1201,7 +1180,7 @@ export default function App() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View>
-              <Text style={styles.cardSubHeader}>MONITORAGGIO IN TEMPO REALE</Text>
+              <Text style={styles.cardSubHeader}>MONITORAGGIO AFFLUENZA</Text>
               <Text style={styles.cardMainTitle}>Stima Affluenza Sala Pesi</Text>
               <Text style={styles.cardSubLocation}>CUS Unical • Dati Google Maps</Text>
             </View>
@@ -1318,67 +1297,63 @@ export default function App() {
               <View style={styles.currentCrowdBox}>
                 {isTodaySelected && isGymOpenNow ? (
                   <>
-                    {/* Centered Live Badge & Last Update */}
+                    {/* Google gives live crowding only in words: the live word is the headline, the typical % is context */}
                     <View style={styles.liveCenteredHeader}>
-                      <View style={styles.livePillSmall}>
-                        <View style={styles.livePulsingDot} />
-                        <Text style={styles.livePillSmallText}>{liveCrowdItem.isLive ? 'LIVE' : 'STIMA'} • {activeDayData.name.toUpperCase()}</Text>
-                      </View>
-                      <Text style={styles.lastUpdateCentered} numberOfLines={1}>
-                        Aggiornato: ore {lastCrowdRefresh}
-                      </Text>
-                    </View>
-
-                    <View style={styles.liveStatusRowCentered}>
-                      <Text style={[styles.crowdNowLevel, { color: liveCrowdItem.color }]}>
-                        {liveCrowdItem.level.toUpperCase()}
-                      </Text>
-                      <Text style={styles.crowdNowPercent}>~{liveCrowdItem.percent}% di affluenza</Text>
-                      {liveCrowdItem.isLive && (
-                        <Text
-                          style={[
-                            styles.crowdNowComparison,
-                            {
-                              color: /Più/.test(liveCrowdItem.comparisonStatus || '')
-                                ? '#EF4444'
-                                : /Meno/.test(liveCrowdItem.comparisonStatus || '')
-                                ? '#10B981'
-                                : '#64748B',
-                            },
-                          ]}
-                        >
-                          {/Più/.test(liveCrowdItem.comparisonStatus || '')
-                            ? `↑ ${liveCrowdItem.comparisonStatus}`
-                            : /Meno/.test(liveCrowdItem.comparisonStatus || '')
-                            ? `↓ ${liveCrowdItem.comparisonStatus}`
-                            : '= In linea con il solito'}
-                        </Text>
+                      {liveCrowdItem.isLive ? (
+                        <View style={styles.livePillSmall}>
+                          <View style={styles.livePulsingDot} />
+                          <Text style={styles.livePillSmallText}>DAL VIVO • ORE {lastCrowdRefresh}</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.historicalPill}>
+                          <Text style={styles.historicalPillText}>STIMA • OGGI</Text>
+                        </View>
                       )}
+                      <Text style={styles.lastUpdateCentered} numberOfLines={1}>
+                        Google Maps
+                      </Text>
                     </View>
 
-                    {/* Typical-level bar only when live data differs from history */}
+                    {liveCrowdItem.isLive ? (
+                      <View style={styles.liveStatusRowCentered}>
+                        <Text style={styles.liveStatusSubtitle}>Adesso</Text>
+                        <Text style={[styles.crowdNowLevel, { color: liveTrend.color }]}>
+                          {liveTrend.headline} {liveTrend.arrow}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.liveStatusRowCentered}>
+                        <Text style={styles.liveStatusSubtitle}>Di solito alle {liveCrowdItem.label}</Text>
+                        <Text style={[styles.crowdNowLevel, { color: nowTypical.color }]}>
+                          {nowTypical.level}
+                        </Text>
+                        <Text style={styles.crowdNowPercent}>
+                          Nessun dato in tempo reale: è la media storica (~{liveCrowdItem.typical}%).
+                        </Text>
+                      </View>
+                    )}
+
                     {liveCrowdItem.isLive && (
                       <View style={styles.comparisonContainer}>
-                        <View style={styles.comparisonBarGroup}>
-                          <View style={styles.comparisonBarLabelRow}>
-                            <Text style={styles.comparisonLabel} numberOfLines={1} ellipsizeMode="tail">
-                              Affluenza tipica {activeDayData.name} ({liveCrowdItem.label}):
-                            </Text>
-                            <Text style={[styles.comparisonValue, { color: '#64748B' }]}>
-                              ~{liveCrowdItem.typical}%
-                            </Text>
-                          </View>
-                          <View style={styles.comparisonBarTrack}>
-                            <View
-                              style={[
-                                styles.comparisonBarFill,
-                                { width: `${liveCrowdItem.typical}%`, backgroundColor: '#94A3B8' },
-                              ]}
-                            />
-                          </View>
+                        <View style={styles.comparisonBarLabelRow}>
+                          <Text style={styles.comparisonLabel} numberOfLines={1} ellipsizeMode="tail">
+                            Di solito alle {liveCrowdItem.label}
+                          </Text>
+                          <Text style={[styles.comparisonValue, { color: nowTypical.color }]}>
+                            {nowTypical.level} · ~{liveCrowdItem.typical}%
+                          </Text>
+                        </View>
+                        <View style={styles.comparisonBarTrack}>
+                          <View
+                            style={[
+                              styles.comparisonBarFill,
+                              { width: `${liveCrowdItem.typical}%`, backgroundColor: nowTypical.color },
+                            ]}
+                          />
                         </View>
                       </View>
-                    )}                  </>
+                    )}
+                  </>
                 ) : (
                   <>
                     <View style={styles.liveCenteredHeader}>
@@ -1404,52 +1379,34 @@ export default function App() {
                 )}
               </View>
 
-              {/* Clean Hourly Bar Chart with Habitual Level in Grey for Current Bar */}
+              {/* Hourly chart: every bar is Google's typical value; the current hour carries the live arrow */}
+              <Text style={styles.crowdChartCaption}>Affluenza tipica per ora</Text>
               <View style={styles.crowdChartContainer}>
                 {activeCrowdList.map((item) => {
-                  const isLiveNow = isTodaySelected && isGymOpenNow && item.hour === currentHour && !!item.isLive;
-                  const barHeight = Math.max(14, Math.round((item.percent / 100) * 80));
-                  const typicalHeight = Math.max(14, Math.round((item.typical / 100) * 80));
+                  const isNow = isTodaySelected && isGymOpenNow && item.hour === currentHour;
+                  const isLiveNow = isNow && !!item.isLive;
+                  const barHeight = Math.max(14, Math.round((item.typical / 100) * 80));
 
                   return (
                     <View key={item.hour} style={styles.crowdChartCol}>
-                      <Text
-                        style={[
-                          styles.crowdBarVal,
-                          isLiveNow && { color: '#10B981', fontWeight: '800' },
-                        ]}
-                      >
-                        {item.percent}%
+                      <Text style={[styles.crowdBarVal, isNow && styles.crowdBarValNow]}>
+                        {item.typical}%
                       </Text>
-                      <View style={styles.crowdBarTrack}>
-                        {/* Habitual / typical level in grey behind/underneath the current live bar */}
-                        {isLiveNow && (
-                          <View
-                            style={[
-                              styles.crowdBarTypicalFill,
-                              {
-                                height: typicalHeight,
-                              },
-                            ]}
-                          />
-                        )}
+                      <View style={[styles.crowdBarTrack, isNow && styles.crowdBarTrackNow]}>
                         <View
                           style={[
                             styles.crowdBarFill,
-                            {
-                              height: barHeight,
-                              backgroundColor: isLiveNow
-                                ? (item.color || '#10B981')
-                                : item.color || '#CBD5E1',
-                            },
+                            { height: barHeight, backgroundColor: getCrowdLevel(item.typical).color },
                           ]}
                         />
                       </View>
-                      <Text style={styles.crowdHourLabel}>
+                      <Text style={[styles.crowdHourLabel, isNow && styles.crowdHourLabelNow]}>
                         {item.label.split(':')[0]}
                       </Text>
-                      {isLiveNow ? (
-                        <Text style={[styles.nowBadgeText, { color: '#10B981' }]}>LIVE</Text>
+                      {isNow ? (
+                        <Text style={[styles.nowBadgeText, { color: isLiveNow ? liveTrend.color : '#0F172A' }]}>
+                          ORA
+                        </Text>
                       ) : (
                         <View style={{ height: 12 }} />
                       )}
@@ -1636,12 +1593,7 @@ export default function App() {
                                 <Text style={styles.slotBookedText}>Già prenotato</Text>
                               </View>
                             ) : isBookable ? (
-                              <View style={[styles.crowdPill, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).bgColor }]}>
-                                <View style={[styles.crowdDotSmall, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).dotColor }]} />
-                                <Text style={[styles.crowdPillText, { color: getSlotDynamicCrowd(item.slot, selectedDay).textColor }]}>
-                                  {getSlotDynamicCrowd(item.slot, selectedDay).badgeText}
-                                </Text>
-                              </View>
+                              renderCrowdPill(item.slot)
                             ) : (
                               <View style={styles.slotDisabledPill}>
                                 <Text style={styles.slotDisabledText}>{isFull ? 'Pieno' : 'Non disp.'}</Text>
@@ -1727,12 +1679,7 @@ export default function App() {
                                   <Text style={styles.slotBookedText}>Già prenotato</Text>
                                 </View>
                               ) : isBookable ? (
-                                <View style={[styles.crowdPill, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).bgColor }]}>
-                                  <View style={[styles.crowdDotSmall, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).dotColor }]} />
-                                  <Text style={[styles.crowdPillText, { color: getSlotDynamicCrowd(item.slot, selectedDay).textColor }]}>
-                                    {getSlotDynamicCrowd(item.slot, selectedDay).badgeText}
-                                  </Text>
-                                </View>
+                                renderCrowdPill(item.slot)
                               ) : (
                                 <View style={styles.slotDisabledPill}>
                                   <Text style={styles.slotDisabledText}>{isFull ? 'Pieno' : 'Non disp.'}</Text>
@@ -1811,12 +1758,7 @@ export default function App() {
                                   <Text style={styles.slotBookedText}>Già prenotato</Text>
                                 </View>
                               ) : isBookable ? (
-                                <View style={[styles.crowdPill, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).bgColor }]}>
-                                  <View style={[styles.crowdDotSmall, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).dotColor }]} />
-                                  <Text style={[styles.crowdPillText, { color: getSlotDynamicCrowd(item.slot, selectedDay).textColor }]}>
-                                    {getSlotDynamicCrowd(item.slot, selectedDay).badgeText}
-                                  </Text>
-                                </View>
+                                renderCrowdPill(item.slot)
                               ) : (
                                 <View style={styles.slotDisabledPill}>
                                   <Text style={styles.slotDisabledText}>{isFull ? 'Pieno' : 'Non disp.'}</Text>
@@ -1895,12 +1837,7 @@ export default function App() {
                                   <Text style={styles.slotBookedText}>Già prenotato</Text>
                                 </View>
                               ) : isBookable ? (
-                                <View style={[styles.crowdPill, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).bgColor }]}>
-                                  <View style={[styles.crowdDotSmall, { backgroundColor: getSlotDynamicCrowd(item.slot, selectedDay).dotColor }]} />
-                                  <Text style={[styles.crowdPillText, { color: getSlotDynamicCrowd(item.slot, selectedDay).textColor }]}>
-                                    {getSlotDynamicCrowd(item.slot, selectedDay).badgeText}
-                                  </Text>
-                                </View>
+                                renderCrowdPill(item.slot)
                               ) : (
                                 <View style={styles.slotDisabledPill}>
                                   <Text style={styles.slotDisabledText}>{isFull ? 'Pieno' : 'Non disp.'}</Text>
@@ -1960,14 +1897,12 @@ export default function App() {
                     <Text
                       style={[
                         styles.summaryItemValue,
-                        selectedSlot && isSelectedSlotBookable
-                          ? { color: getSlotDynamicCrowd(selectedSlot, selectedDay).dotColor, fontWeight: '700' }
+                        selectedSlotCrowd
+                          ? { color: selectedSlotCrowd.dotColor, fontWeight: '700' }
                           : { color: '#94A3B8', fontWeight: '500' },
                       ]}
                     >
-                      {selectedSlot && isSelectedSlotBookable
-                        ? getSlotDynamicCrowd(selectedSlot, selectedDay).label
-                        : '—'}
+                      {selectedSlotCrowd ? selectedSlotCrowd.level : '—'}
                     </Text>
                   </View>
 
@@ -2587,11 +2522,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 4,
   },
-  crowdNowComparison: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 4,
-  },
   livePillSmall: {
     backgroundColor: '#DCFCE7',
     paddingHorizontal: 8,
@@ -2628,7 +2558,6 @@ const styles = StyleSheet.create({
   comparisonContainer: {
     gap: 8,
   },
-  comparisonBarGroup: {},
   comparisonBarLabelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2661,7 +2590,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    height: 125,
     paddingVertical: 8,
     marginBottom: 4,
   },
@@ -2684,14 +2612,25 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
-  crowdBarTypicalFill: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    width: '100%',
-    backgroundColor: '#94A3B8',
-    borderRadius: 7,
+  crowdBarTrackNow: {
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+  },
+  crowdBarValNow: {
+    color: '#0F172A',
+    fontWeight: '800',
+  },
+  crowdHourLabelNow: {
+    color: '#0F172A',
+    fontWeight: '800',
+  },
+  crowdChartCaption: {
+    fontSize: 10,
+    color: '#94A3B8',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
   },
   crowdBarFill: {
     width: '100%',
