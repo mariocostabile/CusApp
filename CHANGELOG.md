@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.8.4](https://github.com/mariocostabile/CusApp/compare/v2.8.3...v2.8.4) (2026-11-21)
+
+
+### Correzioni
+
+* **crowd:** scheda affluenza più chiara, con dato dal vivo e media separati ([#17](https://github.com/mariocostabile/CusApp/issues/17)) ([2270901](https://github.com/mariocostabile/CusApp/commit/227090198e7eb48652512f7d615ee9bcedc63658))
+* **update:** percentuale e barra nel download dell'aggiornamento ([#21](https://github.com/mariocostabile/CusApp/issues/21)) ([06bc5e8](https://github.com/mariocostabile/CusApp/commit/06bc5e8059f7a90d8ec0a8ec0efccd2a7219989e))
+* **update:** riusa l'APK già scaricato e libera la cache ([#22](https://github.com/mariocostabile/CusApp/issues/22)) ([2bba626](https://github.com/mariocostabile/CusApp/commit/2bba62679f2b9e8eba1a016da554a9d3a33d5bc0))
+
 ## [2.8.3](https://github.com/mariocostabile/CusApp/compare/v2.8.2...v2.8.3) (2026-11-09)
 
 
