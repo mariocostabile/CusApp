@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Linking } from 'react-native';
+import { AppState, Linking, StyleSheet, View } from 'react-native';
 import { AppDialog, type AppDialogAction } from '@/components/app-dialog';
 import { checkForUpdate, type AvailableUpdate } from '@/services/updateService';
 import { downloadAndInstall } from '@/services/updateInstaller';
@@ -84,6 +84,28 @@ export function UpdatePrompt() {
         dismissedVersion.current = update.version;
         setUpdate(null);
       }}
-    />
+    >
+      {phase.kind === 'downloading' && phase.progress !== null && (
+        <View style={styles.barTrack}>
+          <View style={[styles.barFill, { width: `${Math.round(phase.progress * 100)}%` }]} />
+        </View>
+      )}
+    </AppDialog>
   );
 }
+
+// Stesso stile della barra di utilizzo nella home.
+const styles = StyleSheet.create({
+  barTrack: {
+    width: '100%',
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#E2E8F0',
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  barFill: {
+    height: '100%',
+    backgroundColor: '#0284C7',
+  },
+});
