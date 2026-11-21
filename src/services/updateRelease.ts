@@ -104,3 +104,8 @@ export function staleApkNames(names: string[], currentVersion: string): string[]
     return validCurrent && !isNewer(match[1], currentVersion);
   });
 }
+
+/** Un APK già in cache è riusabile solo se ha la dimensione indicata da GitHub (se nota). */
+export function isCompleteApk(actualSize: number, apkSize: number | null): boolean {
+  return apkSize === null || actualSize === apkSize;
+}
