@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseVersion, isNewer, cleanNotes, parseRelease, downloadFraction } from './updateRelease.ts';
+import { parseVersion, isNewer, cleanNotes, parseRelease, downloadFraction, staleApkNames, isCompleteApk } from './updateRelease.ts';
 
 const APK_URL = 'https://github.com/mariocostabile/CusApp/releases/download/v2.7.0/CusCosenza-v2.7.0.apk';
 
@@ -108,4 +108,22 @@ test('downloadFraction usa il totale del server, poi apkSize, altrimenti null', 
   assert.equal(downloadFraction(50, -1, 100), 0.5);
   assert.equal(downloadFraction(50, 0, null), null);
   assert.equal(downloadFraction(150, 0, 100), 1);
+});
+
+test('staleApkNames cancella .part e APK di versioni già installate, nient altro', () => {
+  const names = ['CusCosenza-2.8.3.apk', 'CusCosenza-2.8.4.apk', 'CusCosenza-2.8.5.apk',
+    'CusCosenza-2.8.5.apk.part', 'altro.txt', 'CusCosenza-latest.apk'];
+  assert.deepEqual(staleApkNames(names, '2.8.4'),
+    ['CusCosenza-2.8.3.apk', 'CusCosenza-2.8.4.apk', 'CusCosenza-2.8.5.apk.part']);
+});
+
+test('staleApkNames con versione installata non valida cancella solo i .part', () => {
+  assert.deepEqual(staleApkNames(['CusCosenza-2.8.3.apk', 'CusCosenza-2.8.3.apk.part'], 'boh'),
+    ['CusCosenza-2.8.3.apk.part']);
+});
+
+test('isCompleteApk confronta la dimensione solo se GitHub la conosce', () => {
+  assert.equal(isCompleteApk(100, 100), true);
+  assert.equal(isCompleteApk(40, 100), false);
+  assert.equal(isCompleteApk(40, null), true);
 });
